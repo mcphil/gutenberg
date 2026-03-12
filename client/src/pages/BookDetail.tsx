@@ -1,0 +1,299 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { ArrowLeft, BookOpen, Download, Loader2, Sparkles, Tag, User, Calendar } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { trpc } from "@/lib/trpc";
+import { getAuthorDisplay, getAuthorYears, getCoverUrl, getEpubUrl } from "../../../shared/gutenberg";
+import { useRecentBooks } from "@/hooks/useLocalStorage";
+import { useReadingProgress } from "@/hooks/useLocalStorage";
+
+interface BookDetailProps {
+  bookId: number;
+}
+
+export default function BookDetail({ bookId }: BookDetailProps) {
+  const [, navigate] = useLocation();
+  const [imgError, setImgError] = useState(false);
+  const [summaryRequested, setSummaryRequested] = useState(false);
+  const { addRecentBook } = useRecentBooks();
+  const { getProgress } = useReadingProgress();
+
+  const { data: book, isLoading } = trpc.books.byId.useQuery({ id: bookId });
+  const { data: cachedSummary } = trpc.summaries.getCached.useQuery({ gutenbergId: bookId });
+  const generateSummary = trpc.summaries.generate.useMutation();
+
+  const progress = getProgress(bookId);
+
+  // Track recently viewed
+  useEffect(() => {
+    if (book) {
+      addRecentBook({
+        gutenbergId: book.id,
+        title: book.title,
+        authors: getAuthorDisplay(book),
+        coverUrl: getCoverUrl(book),
+      });
+    }
+  }, [book]);
+
+  const handleGenerateSummary = () => {
+    if (!book) return;
+    setSummaryRequested(true);
+    generateSummary.mutate({
+      gutenbergId: book.id,
+      title: book.title,
+      authors: book.authors,
+      subjects: book.subjects,
+      existingSummary: book.summaries?.[0],
+      type: "both",
+    });
+  };
+
+  const summary = generateSummary.data || (cachedSummary ? {
+    shortSummary: cachedSummary.shortSummary ?? "",
+    longSummary: cachedSummary.longSummary ?? "",
+  } : null);
+
+  const gutenbergSummary = book?.summaries?.[0]
+    ?.replace(/\(This is an automatically generated summary\.\)/, "")
+    .trim();
+
+  const epubUrl = book ? getEpubUrl(book) : null;
+
+  if (isLoading) {
+    return <BookDetailSkeleton />;
+  }
+
+  if (!book) {
+    return (
+      <div className="container py-12 text-center text-muted-foreground">
+        <p>Buch nicht gefunden.</p>
+        <Button variant="link" onClick={() => navigate("/")}>Zurück zur Übersicht</Button>
+      </div>
+    );
+  }
+
+  const coverUrl = getCoverUrl(book);
+
+  return (
+    <div className="container py-6 max-w-4xl mx-auto">
+      {/* Back */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-6 -ml-2 text-muted-foreground hover:text-foreground"
+        onClick={() => navigate("/")}
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Zurück zur Übersicht
+      </Button>
+
+      <div className="flex flex-col sm:flex-row gap-8">
+        {/* Cover */}
+        <div className="shrink-0 sm:w-48 md:w-56">
+          <div className="rounded-lg overflow-hidden shadow-lg border border-border" style={{ aspectRatio: "2/3" }}>
+            {!imgError ? (
+              <img
+                src={coverUrl}
+                alt={`Cover: ${book.title}`}
+                className="w-full h-full object-cover"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="w-full h-full bg-muted flex flex-col items-center justify-center p-4">
+                <BookOpen className="w-10 h-10 text-muted-foreground mb-2" />
+                <p className="text-xs text-center text-muted-foreground line-clamp-4"
+                   style={{ fontFamily: "Lora, Georgia, serif" }}>
+                  {book.title}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Reading progress */}
+          {progress && (
+            <div className="mt-3 p-2 bg-muted/60 rounded-md">
+              <p className="text-xs text-muted-foreground mb-1">Lesefortschritt</p>
+              <div className="w-full bg-border rounded-full h-1.5">
+                <div
+                  className="bg-primary h-1.5 rounded-full transition-all"
+                  style={{ width: `${Math.round(progress.percentage * 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {Math.round(progress.percentage * 100)}%
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <h1
+            className="text-2xl md:text-3xl font-semibold text-foreground leading-tight mb-3"
+            style={{ fontFamily: "Lora, Georgia, serif" }}
+          >
+            {book.title}
+          </h1>
+
+          {/* Authors */}
+          {book.authors.map((author) => (
+            <div key={author.name} className="flex items-center gap-2 text-muted-foreground mb-1">
+              <User className="w-4 h-4 shrink-0" />
+              <span className="text-sm">
+                {getAuthorDisplay({ ...book, authors: [author] })}{" "}
+                <span className="text-xs">{getAuthorYears(author)}</span>
+              </span>
+            </div>
+          ))}
+
+          {/* Downloads */}
+          <div className="flex items-center gap-2 text-muted-foreground mt-2 mb-4">
+            <Download className="w-4 h-4 shrink-0" />
+            <span className="text-sm">{book.download_count.toLocaleString("de-DE")} Downloads</span>
+          </div>
+
+          {/* Subjects */}
+          {book.subjects.length > 0 && (
+            <div className="mb-5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Tag className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Themen</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {book.subjects.map((s) => (
+                  <Badge key={s} variant="secondary" className="text-xs">
+                    {s}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Bookshelves */}
+          {book.bookshelves.length > 0 && (
+            <div className="mb-5">
+              <div className="flex flex-wrap gap-1.5">
+                {book.bookshelves.map((s) => (
+                  <Badge key={s} variant="outline" className="text-xs">
+                    {s}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Summary section */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
+                Zusammenfassung
+              </h2>
+              {!summary && !summaryRequested && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={handleGenerateSummary}
+                  disabled={generateSummary.isPending}
+                >
+                  {generateSummary.isPending ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3 h-3" />
+                  )}
+                  KI-Zusammenfassung
+                </Button>
+              )}
+            </div>
+
+            {/* AI summary */}
+            {summary?.longSummary && (
+              <div className="bg-accent/30 border border-border rounded-lg p-4 mb-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs text-muted-foreground font-medium">KI-Zusammenfassung</span>
+                </div>
+                <p className="text-sm leading-relaxed text-foreground">
+                  {summary.longSummary}
+                </p>
+              </div>
+            )}
+
+            {generateSummary.isPending && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Zusammenfassung wird generiert…
+              </div>
+            )}
+
+            {/* Gutenberg summary as fallback */}
+            {gutenbergSummary && !summary?.longSummary && (
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {gutenbergSummary}
+              </p>
+            )}
+
+            {!gutenbergSummary && !summary?.longSummary && !generateSummary.isPending && (
+              <p className="text-sm text-muted-foreground italic">
+                Keine Beschreibung verfügbar. Klicke auf „KI-Zusammenfassung" für eine automatisch generierte Zusammenfassung.
+              </p>
+            )}
+          </div>
+
+          {/* CTA */}
+          <div className="flex flex-wrap gap-3">
+            {epubUrl ? (
+              <Button
+                size="lg"
+                className="gap-2"
+                onClick={() => navigate(`/read/${book.id}`)}
+              >
+                <BookOpen className="w-5 h-5" />
+                {progress ? "Weiterlesen" : "Jetzt lesen"}
+              </Button>
+            ) : (
+              <Button size="lg" variant="outline" disabled className="gap-2">
+                <BookOpen className="w-5 h-5" />
+                Kein EPUB verfügbar
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="lg"
+              className="gap-2"
+              onClick={() => window.open(`https://www.gutenberg.org/ebooks/${book.id}`, "_blank")}
+            >
+              <Download className="w-5 h-5" />
+              Auf Gutenberg.org
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Skeleton ────────────────────────────────────────────────
+
+function BookDetailSkeleton() {
+  return (
+    <div className="container py-6 max-w-4xl mx-auto">
+      <div className="skeleton h-8 w-32 rounded mb-6" />
+      <div className="flex flex-col sm:flex-row gap-8">
+        <div className="skeleton shrink-0 sm:w-48 md:w-56 rounded-lg" style={{ aspectRatio: "2/3" }} />
+        <div className="flex-1 space-y-3">
+          <div className="skeleton h-8 w-3/4 rounded" />
+          <div className="skeleton h-4 w-1/2 rounded" />
+          <div className="skeleton h-4 w-1/3 rounded" />
+          <div className="flex gap-2 mt-4">
+            {[1, 2, 3].map((i) => <div key={i} className="skeleton h-6 w-20 rounded-full" />)}
+          </div>
+          <div className="skeleton h-24 w-full rounded mt-4" />
+          <div className="skeleton h-12 w-40 rounded mt-4" />
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -43,74 +43,82 @@
 }
 
 :root {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-600);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --radius: 0.65rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.235 0.015 65);
+  /* Warm, book-inspired palette */
+  --radius: 0.5rem;
+  --background: oklch(0.985 0.006 85);
+  --foreground: oklch(0.18 0.02 50);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.235 0.015 65);
+  --card-foreground: oklch(0.18 0.02 50);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.015 65);
-  --secondary: oklch(0.98 0.001 286.375);
-  --secondary-foreground: oklch(0.4 0.015 65);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.141 0.005 285.823);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.623 0.214 259.815);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.235 0.015 65);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.623 0.214 259.815);
+  --popover-foreground: oklch(0.18 0.02 50);
+  --primary: oklch(0.38 0.10 35);
+  --primary-foreground: oklch(0.97 0.01 85);
+  --secondary: oklch(0.94 0.015 85);
+  --secondary-foreground: oklch(0.30 0.04 50);
+  --muted: oklch(0.94 0.01 85);
+  --muted-foreground: oklch(0.52 0.03 50);
+  --accent: oklch(0.90 0.04 70);
+  --accent-foreground: oklch(0.25 0.06 50);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.97 0.01 85);
+  --border: oklch(0.88 0.01 85);
+  --input: oklch(0.88 0.01 85);
+  --ring: oklch(0.38 0.10 35);
+  --sidebar: oklch(0.975 0.008 85);
+  --sidebar-foreground: oklch(0.18 0.02 50);
+  --sidebar-primary: oklch(0.38 0.10 35);
+  --sidebar-primary-foreground: oklch(0.97 0.01 85);
+  --sidebar-accent: oklch(0.92 0.02 85);
+  --sidebar-accent-foreground: oklch(0.25 0.06 50);
+  --sidebar-border: oklch(0.88 0.01 85);
+  --sidebar-ring: oklch(0.38 0.10 35);
+  --chart-1: oklch(0.55 0.18 35);
+  --chart-2: oklch(0.60 0.14 60);
+  --chart-3: oklch(0.50 0.12 200);
+  --chart-4: oklch(0.65 0.16 120);
+  --chart-5: oklch(0.45 0.20 300);
+  /* Reader tokens */
+  --reader-bg-light: oklch(0.99 0.005 85);
+  --reader-bg-sepia: oklch(0.94 0.04 80);
+  --reader-bg-dark: oklch(0.14 0.01 30);
+  --reader-text-light: oklch(0.18 0.02 50);
+  --reader-text-sepia: oklch(0.22 0.06 55);
+  --reader-text-dark: oklch(0.88 0.01 85);
 }
 
 .dark {
-  --primary: var(--color-blue-700);
-  --primary-foreground: var(--color-blue-50);
-  --sidebar-primary: var(--color-blue-500);
-  --sidebar-primary-foreground: var(--color-blue-50);
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.85 0.005 65);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.85 0.005 65);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.85 0.005 65);
-  --secondary: oklch(0.24 0.006 286.033);
-  --secondary-foreground: oklch(0.7 0.005 65);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground:  oklch(0.92 0.005 65);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.488 0.243 264.376);
-  --chart-1: var(--color-blue-300);
-  --chart-2: var(--color-blue-500);
-  --chart-3: var(--color-blue-600);
-  --chart-4: var(--color-blue-700);
-  --chart-5: var(--color-blue-800);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.85 0.005 65);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground:  oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.488 0.243 264.376);
+  --background: oklch(0.13 0.01 30);
+  --foreground: oklch(0.93 0.01 85);
+  --card: oklch(0.17 0.015 30);
+  --card-foreground: oklch(0.93 0.01 85);
+  --popover: oklch(0.17 0.015 30);
+  --popover-foreground: oklch(0.93 0.01 85);
+  --primary: oklch(0.72 0.10 50);
+  --primary-foreground: oklch(0.13 0.01 30);
+  --secondary: oklch(0.22 0.02 30);
+  --secondary-foreground: oklch(0.85 0.01 85);
+  --muted: oklch(0.22 0.02 30);
+  --muted-foreground: oklch(0.60 0.02 85);
+  --accent: oklch(0.28 0.04 50);
+  --accent-foreground: oklch(0.88 0.02 85);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.97 0.01 85);
+  --border: oklch(0.26 0.02 30);
+  --input: oklch(0.26 0.02 30);
+  --ring: oklch(0.72 0.10 50);
+  --sidebar: oklch(0.17 0.015 30);
+  --sidebar-foreground: oklch(0.93 0.01 85);
+  --sidebar-primary: oklch(0.72 0.10 50);
+  --sidebar-primary-foreground: oklch(0.13 0.01 30);
+  --sidebar-accent: oklch(0.22 0.02 30);
+  --sidebar-accent-foreground: oklch(0.88 0.02 85);
+  --sidebar-border: oklch(0.26 0.02 30);
+  --sidebar-ring: oklch(0.72 0.10 50);
+  --chart-1: oklch(0.70 0.15 50);
+  --chart-2: oklch(0.65 0.12 80);
+  --chart-3: oklch(0.60 0.10 200);
+  --chart-4: oklch(0.68 0.14 140);
+  --chart-5: oklch(0.55 0.18 300);
 }
 
 @layer base {
@@ -119,6 +127,14 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Lora', 'Georgia', serif;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
   }
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -134,6 +150,54 @@
 }
 
 @layer components {
+  /* ── Book Card ─────────────────────────────────────────── */
+  .book-card {
+    @apply bg-card text-card-foreground rounded-lg border border-border overflow-hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .book-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px oklch(0 0 0 / 0.10);
+  }
+  .book-cover {
+    aspect-ratio: 2/3;
+    object-fit: cover;
+    width: 100%;
+    background-color: var(--muted);
+  }
+
+  /* ── Reader Themes ─────────────────────────────────────── */
+  .reader-light { background: var(--reader-bg-light); color: var(--reader-text-light); }
+  .reader-sepia { background: var(--reader-bg-sepia); color: var(--reader-text-sepia); }
+  .reader-dark  { background: var(--reader-bg-dark);  color: var(--reader-text-dark);  }
+
+  /* ── Browse Swipe ──────────────────────────────────────── */
+  .browse-card {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.38s ease;
+    will-change: transform, opacity;
+  }
+  .browse-card.entering-from-bottom { transform: translateY(100%); opacity: 0; }
+  .browse-card.entering-from-top    { transform: translateY(-100%); opacity: 0; }
+  .browse-card.active               { transform: translateY(0); opacity: 1; }
+  .browse-card.exiting-to-top       { transform: translateY(-100%); opacity: 0; }
+  .browse-card.exiting-to-bottom    { transform: translateY(100%); opacity: 0; }
+
+  /* ── Skeleton shimmer ──────────────────────────────────── */
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position:  200% 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, var(--muted) 25%, oklch(from var(--muted) l c h / 0.5) 50%, var(--muted) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: var(--radius-sm);
+  }
+
   /**
    * Custom container utility that centers content and adds responsive padding.
    *

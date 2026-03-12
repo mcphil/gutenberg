@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE `book_summaries` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`gutenbergId` int NOT NULL,\n\t`shortSummary` text,\n\t`longSummary` text,\n\t`generatedAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `book_summaries_id` PRIMARY KEY(`id`),\n\tCONSTRAINT `book_summaries_gutenbergId_unique` UNIQUE(`gutenbergId`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute CREATE TABLE `book_summaries` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`gutenbergId` int NOT NULL,\n\t`shortSummary` text,\n\t`longSummary` text,\n\t`generatedAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `book_summaries_id` PRIMARY KEY(`id`),\n\tCONSTRAINT `book_summaries_gutenbergId_unique` UNIQUE(`gutenbergId`)\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 695
+}
