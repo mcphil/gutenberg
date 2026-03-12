@@ -7,6 +7,7 @@ import { BookOpen, Clock, Shuffle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useReadingProgress } from "@/hooks/useLocalStorage";
+import { trpc } from "@/lib/trpc";
 
 export default function Home() {
   const [, navigate] = useLocation();
@@ -14,8 +15,9 @@ export default function Home() {
   const [view, setView] = useState<"grid" | "list" | "browse">(appPrefs.defaultView);
   const [searchQuery, setSearchQuery] = useState("");
   const { getAllProgress } = useReadingProgress();
-
-  // Sync dark mode to <html>
+  const { data: countData } = trpc.books.count.useQuery();
+  const bookCount = countData ?? 2420;
+  // Sync dark mode to <html>>
   useEffect(() => {
     if (appPrefs.darkMode) {
       document.documentElement.classList.add("dark");
@@ -62,11 +64,11 @@ export default function Home() {
                 className="text-2xl sm:text-3xl font-semibold text-foreground"
                 style={{ fontFamily: "Lora, Georgia, serif" }}
               >
-                Gutenberg Leser
+                Gutenberg Navigator
               </h1>
             </div>
             <p className="text-muted-foreground text-sm max-w-md mx-auto mb-5">
-              2.420 deutschsprachige Klassiker — kostenlos, werbefrei, mit integriertem Leser.
+              Erkunde {bookCount.toLocaleString("de-DE")} deutschsprachige Werke aus der Gutenberg.org Bibliothek
             </p>
             <Button
               variant="outline"

@@ -44,7 +44,7 @@ export function AppHeader({
               className="font-semibold text-base hidden sm:block"
               style={{ fontFamily: "Lora, Georgia, serif" }}
             >
-              Gutenberg Leser
+              Gutenberg Navigator
             </span>
           </a>
 

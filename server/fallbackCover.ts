@@ -118,7 +118,7 @@ export function generateFallbackCoverSvg(title: string, author: string): string 
   // Author block: anchored near the bottom
   const authorStartY = divider2Y - 20 - authorLines.length * 26;
 
-  // Small decorative "Gutenberg Leser" label at the very top
+  // Small decorative "Gutenberg Navigator" label at the very top
   const labelY = topBorderY + 22;
 
   // ── Ornament path (simple floral/diamond motif) ──────────
@@ -178,13 +178,13 @@ export function generateFallbackCoverSvg(title: string, author: string): string 
         width="${W - (innerTop - 10) * 2}" height="${H - (innerTop - 10) * 2}"
         fill="none" stroke="${palette.accent}" stroke-width="0.6" opacity="0.35"/>
 
-  <!-- Top label: "Gutenberg Leser" -->
+  <!-- Top label: "Gutenberg Navigator" -->
   <text x="${W / 2}" y="${labelY}"
         font-family="Georgia, 'Times New Roman', serif"
         font-size="10" letter-spacing="3"
         fill="${palette.accent}" opacity="0.7"
         text-anchor="middle" dominant-baseline="middle">
-    GUTENBERG LESER
+    GUTENBERG NAVIGATOR
   </text>
 
   <!-- Divider line 1 with ornament -->

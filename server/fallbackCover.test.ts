@@ -73,9 +73,9 @@ describe("generateFallbackCoverSvg", () => {
     expect(svg).toContain("</svg>");
   });
 
-  it("includes GUTENBERG LESER label", () => {
+  it("includes GUTENBERG NAVIGATOR label", () => {
     const svg = generateFallbackCoverSvg("Ein Buch", "Ein Autor");
-    expect(svg).toContain("GUTENBERG LESER");
+    expect(svg).toContain("GUTENBERG NAVIGATOR");
   });
 
   it("has correct viewBox dimensions (400x600 book proportions)", () => {

@@ -1,7 +1,7 @@
 /**
  * shared/gutenberg.ts
  *
- * Shared types and helpers for the Gutenberg Leser app.
+ * Shared types and helpers for the Gutenberg Navigator app.
  *
  * Data source: Project Gutenberg's official pg_catalog.csv
  *   https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv

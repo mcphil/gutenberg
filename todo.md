@@ -55,3 +55,4 @@
 
 ## UI-Verbesserungen
 - [x] Autoren-Anzeige: "Nachname, Vorname [Rolle]" → "Vorname Nachname [Rolle]" — parseAuthors() extrahiert [Rolle] vor dem Umdrehen, hängt sie danach wieder an
+- [x] Umbenennung: "Gutenberg Leser" → "Gutenberg Navigator" überall (Header, Hero, HTML-Titel, Meta-Description, Fallback-Cover-SVG, Code-Kommentare); Subline mit dynamischer Buchanzahl aus DB
