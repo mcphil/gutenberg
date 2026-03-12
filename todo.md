@@ -87,3 +87,4 @@
 - [x] Sortieroption "Zufällig" hinzugefügt (ORDER BY RAND()) und als Standard gesetzt
 - [x] Reader: Scroll-Modus (flow: scrolled-doc, 660px Lesebreite) als zweiter Lesemodus
 - [x] Reader: Scroll-Modus als Standard, Blätter-Modus per Toggle in Toolbar (AlignJustify ↔ BookOpen Icon)
+- [x] Reader Scroll-Modus: 100ch Spaltenbreite, zentriert, hellerer Spaltenhintergrund vs. dunklere Ränder (scrollBg pro Theme)

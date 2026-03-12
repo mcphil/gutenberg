@@ -22,14 +22,16 @@ interface ReaderProps {
 
 type ReaderTheme = "light" | "sepia" | "dark";
 
-const THEME_STYLES: Record<ReaderTheme, { bg: string; text: string; label: string }> = {
-  light: { bg: "#FEFDFB", text: "#2D2416", label: "Hell" },
-  sepia: { bg: "#F4ECD8", text: "#3B2F1E", label: "Sepia" },
-  dark:  { bg: "#1C1A18", text: "#E8E0D4", label: "Dunkel" },
+const THEME_STYLES: Record<ReaderTheme, {
+  bg: string;       // column / page background
+  scrollBg: string; // outer margin background in scroll mode (slightly darker)
+  text: string;
+  label: string;
+}> = {
+  light: { bg: "#FEFDFB", scrollBg: "#EAE5DC", text: "#2D2416", label: "Hell" },
+  sepia: { bg: "#F4ECD8", scrollBg: "#DDD3BC", text: "#3B2F1E", label: "Sepia" },
+  dark:  { bg: "#242220", scrollBg: "#111110", text: "#E8E0D4", label: "Dunkel" },
 };
-
-// Optimal reading width: 60–70 characters per line ≈ 640–680px at 17px serif
-const SCROLL_MAX_WIDTH = 660;
 
 export default function Reader({ bookId }: ReaderProps) {
   const [, navigate] = useLocation();
@@ -74,7 +76,6 @@ export default function Reader({ bookId }: ReaderProps) {
         ? "'Merriweather', 'Georgia', serif"
         : "'Inter', 'system-ui', sans-serif";
     const isScroll = prefs.readingMode === "scroll";
-    const maxW = isScroll ? SCROLL_MAX_WIDTH : prefs.maxWidth;
 
     return {
       body: {
@@ -83,10 +84,16 @@ export default function Reader({ bookId }: ReaderProps) {
         "font-family": fontFamily,
         "font-size": `${prefs.fontSize}px !important`,
         "line-height": `${prefs.lineHeight} !important`,
-        "max-width": `${maxW}px`,
+        // 100ch centres the column; in paginated mode use the user-defined maxWidth
+        "max-width": isScroll ? "100ch" : `${prefs.maxWidth}px`,
         margin: "0 auto",
         padding: isScroll ? "3rem 2rem 6rem" : "2rem 1.5rem",
+        // Subtle box-shadow gives the column a card-like lift in scroll mode
+        "box-shadow": isScroll ? "0 0 0 1px rgba(0,0,0,0.06), 0 2px 24px rgba(0,0,0,0.08)" : "none",
       },
+      // Outer html element gets the darker margin colour in scroll mode
+      html: isScroll ? { background: theme.scrollBg } : {},
+
       p: {
         "font-size": `${prefs.fontSize}px !important`,
         "line-height": `${prefs.lineHeight} !important`,
@@ -190,16 +197,20 @@ export default function Reader({ bookId }: ReaderProps) {
     );
   }
 
+  // In scroll mode the outer container uses the darker margin colour;
+  // the lighter column bg is applied inside the EPUB iframe via getEpubStyles()
+  const outerBg = isScroll ? theme.scrollBg : theme.bg;
+
   const readerStyle: typeof ReactReaderStyle = {
     ...ReactReaderStyle,
     readerArea: {
       ...ReactReaderStyle.readerArea,
-      background: theme.bg,
+      background: outerBg,
       transition: "background 0.3s ease",
     },
     container: {
       ...ReactReaderStyle.container,
-      background: theme.bg,
+      background: outerBg,
     },
     titleArea: { display: "none" },
     tocArea: {
@@ -229,7 +240,7 @@ export default function Reader({ bookId }: ReaderProps) {
   return (
     <div
       className="flex flex-col"
-      style={{ height: "100dvh", background: theme.bg, color: theme.text }}
+      style={{ height: "100dvh", background: outerBg, color: theme.text }}
     >
       {/* Reader toolbar */}
       <div
