@@ -19,13 +19,18 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
   const author = getAuthorDisplay(book);
   const subjects = parseSubjects(book.subjects);
 
-  // Fetch summary on hover (enabled only when hovered, cached after first load)
+  // Fetch summary on first hover, then cached indefinitely
   const { data: cachedSummary } = trpc.summaries.getCached.useQuery(
     { gutenbergId: book.gutenbergId },
     { enabled: hovered, staleTime: Infinity }
   );
 
   const shortSummary = propSummary ?? cachedSummary?.shortSummary ?? null;
+
+  // First sentence for the always-visible preview
+  const previewSentence = shortSummary
+    ? shortSummary.split(/(?<=[.!?])\s+/)[0] ?? shortSummary
+    : null;
 
   return (
     <div
@@ -52,28 +57,21 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
           <CoverFallback title={book.title} />
         )}
 
-        {/* Hover overlay — summary panel */}
+        {/* Hover overlay — full cover, summary only (no title/author repeat) */}
         <div
           className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-200 ${
             hovered ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
           style={{
-            background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.75) 50%, rgba(0,0,0,0.2) 100%)",
+            background:
+              "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.82) 45%, rgba(0,0,0,0.35) 75%, rgba(0,0,0,0.05) 100%)",
           }}
         >
-          <div className="p-2.5 pb-3">
-            <p
-              className="text-white font-semibold text-xs leading-tight mb-0.5 line-clamp-2"
-              style={{ fontFamily: "Lora, Georgia, serif" }}
-            >
-              {book.title}
-            </p>
-            <p className="text-white/60 text-xs mb-2 line-clamp-1">{author}</p>
-
+          <div className="p-3">
             {shortSummary ? (
-              <div className="flex items-start gap-1">
+              <div className="flex items-start gap-1.5">
                 <Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" />
-                <p className="text-white/85 text-xs leading-relaxed line-clamp-4">
+                <p className="text-white/90 text-xs leading-relaxed line-clamp-[8]">
                   {shortSummary}
                 </p>
               </div>
@@ -82,12 +80,12 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
             )}
 
             {subjects.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {subjects.slice(0, 2).map((s) => (
+              <div className="flex flex-wrap gap-1 mt-2.5">
+                {subjects.slice(0, 3).map((s) => (
                   <Badge
                     key={s}
                     variant="secondary"
-                    className="text-xs px-1.5 py-0 h-4 bg-white/20 text-white border-0 truncate max-w-[100px]"
+                    className="text-xs px-1.5 py-0 h-4 bg-white/20 text-white border-0 truncate max-w-[110px]"
                   >
                     {translateSubject(s)}
                   </Badge>
@@ -98,29 +96,26 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
         </div>
       </div>
 
-      {/* Info below cover (non-hover state) */}
+      {/* Card footer — always visible */}
       <div className={compact ? "p-2" : "p-3"}>
         <h3
-          className={`font-semibold text-card-foreground leading-tight mb-1 line-clamp-2 ${
+          className={`font-semibold text-card-foreground leading-tight mb-0.5 line-clamp-2 ${
             compact ? "text-xs" : "text-sm"
           }`}
           style={{ fontFamily: "Lora, Georgia, serif" }}
         >
           {book.title}
         </h3>
-        <div className="flex items-center gap-1 text-muted-foreground mb-2">
+        <div className="flex items-center gap-1 text-muted-foreground mb-1.5">
           <User className="w-3 h-3 shrink-0" />
           <p className="line-clamp-1 text-xs">{author}</p>
         </div>
 
-        {!compact && subjects.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {subjects.slice(0, 2).map((s) => (
-              <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 h-4 truncate max-w-[120px]">
-                {translateSubject(s)}
-              </Badge>
-            ))}
-          </div>
+        {/* Always-visible preview sentence */}
+        {!compact && previewSentence && (
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+            {previewSentence}
+          </p>
         )}
       </div>
     </div>
@@ -136,8 +131,10 @@ function CoverFallback({ title }: { title: string }) {
       style={{ background: `oklch(0.75 0.08 ${hue})` }}
     >
       <BookOpen className="w-8 h-8 text-white/70 mb-2" />
-      <p className="text-white text-xs text-center font-medium leading-tight line-clamp-4"
-         style={{ fontFamily: "Lora, Georgia, serif" }}>
+      <p
+        className="text-white text-xs text-center font-medium leading-tight line-clamp-4"
+        style={{ fontFamily: "Lora, Georgia, serif" }}
+      >
         {title}
       </p>
     </div>

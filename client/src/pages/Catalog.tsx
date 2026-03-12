@@ -35,7 +35,7 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
     [navigate]
   );
 
-  const skeletonCount = view === "grid" ? 32 : 8;
+  const skeletonCount = view === "grid" ? 25 : 8;
 
   return (
     <div>
@@ -49,7 +49,7 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
       />
 
       {/* Book grid / list */}
-      <div className={`py-6 ${view === "grid" ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" : "flex flex-col gap-3"}`}>
+      <div className={`py-6 ${view === "grid" ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-4" : "flex flex-col gap-3"}`}>
         {isLoading || isFetching
           ? Array.from({ length: skeletonCount }).map((_, i) =>
               view === "grid" ? (
