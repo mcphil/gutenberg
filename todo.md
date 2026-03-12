@@ -75,3 +75,4 @@
 - [x] Jahr (issued) aus BookCard, Catalog, BookDetail und BrowseMode entfernt; Code-Kommentar hinterlassen
 - [x] BookDetail: Sektion 'Ähnliche Bücher' mit 4-5 thematisch verwandten Büchern (basierend auf Subjects)
 - [x] BookDetail: Kategorien/Subjects verlinken — Klick navigiert zum Katalog mit voreingestelltem Filter (?topic=)
+- [x] Exakter Subject-Filter: Klick auf Tag zeigt alle Bücher mit diesem Subject (?subject=), neuer Backend-Filter, Banner mit X zum Entfernen

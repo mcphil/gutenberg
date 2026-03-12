@@ -3,9 +3,10 @@ import { useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { BookCard, BookCardSkeleton } from "@/components/BookCard";
 import { FilterPanel } from "@/components/FilterPanel";
-import { ChevronLeft, ChevronRight, BookOpen, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Sparkles, X, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAuthorDisplay, getCoverUrl, type LocalBook } from "../../../shared/gutenberg";
+import { Badge } from "@/components/ui/badge";
+import { getAuthorDisplay, getCoverUrl, translateSubject, type LocalBook } from "../../../shared/gutenberg";
 
 interface CatalogProps {
   view: "grid" | "list";
@@ -17,24 +18,36 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
   const search = useSearch();
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"popular" | "ascending" | "descending">("popular");
-  // Initialise from ?topic= URL param so BookDetail can link here with a pre-set filter
+  // Initialise from ?topic= URL param so FilterPanel topic buttons work
   const [selectedSubject, setSelectedSubject] = useState(() => {
     const params = new URLSearchParams(search);
     return params.get("topic") ?? "";
   });
 
-  // Sync selectedSubject when the URL ?topic param changes (e.g. browser back/forward)
+  // Exact subject tag filter from ?subject= URL param (set by BookDetail tag clicks)
+  const [selectedTag, setSelectedTag] = useState(() => {
+    const params = new URLSearchParams(search);
+    return params.get("subject") ?? "";
+  });
+
+  // Sync filters when URL params change (e.g. browser back/forward)
   useEffect(() => {
     const params = new URLSearchParams(search);
-    const topicFromUrl = params.get("topic") ?? "";
-    setSelectedSubject(topicFromUrl);
+    setSelectedSubject(params.get("topic") ?? "");
+    setSelectedTag(params.get("subject") ?? "");
   }, [search]);
 
   // Reset page when filters change
-  useEffect(() => { setPage(1); }, [searchQuery, sortBy, selectedSubject]);
+  useEffect(() => { setPage(1); }, [searchQuery, sortBy, selectedSubject, selectedTag]);
 
   const { data, isLoading, isFetching } = trpc.books.list.useQuery(
-    { page, search: searchQuery || undefined, topic: selectedSubject || undefined, sort: sortBy },
+    {
+      page,
+      search: searchQuery || undefined,
+      topic: selectedSubject || undefined,
+      subject: selectedTag || undefined,
+      sort: sortBy,
+    },
     { staleTime: 5 * 60 * 1000 }
   );
 
@@ -51,6 +64,24 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
 
   return (
     <div>
+      {/* Active subject tag banner */}
+      {selectedTag && (
+        <div className="flex items-center gap-2 py-2 px-1 mb-1">
+          <Tag className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          <span className="text-sm text-muted-foreground">Thema:</span>
+          <Badge variant="secondary" className="text-xs gap-1">
+            {translateSubject(selectedTag)}
+            <button
+              onClick={() => { setSelectedTag(""); navigate("/"); }}
+              className="ml-0.5 hover:text-destructive transition-colors"
+              aria-label="Filter entfernen"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </Badge>
+        </div>
+      )}
+
       <FilterPanel
         sortBy={sortBy}
         onSortChange={setSortBy}

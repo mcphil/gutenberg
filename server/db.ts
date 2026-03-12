@@ -62,6 +62,8 @@ export interface BookListOptions {
   page: number;
   search?: string;
   topic?: string;
+  /** Exact subject tag filter — matches books whose subjects field contains this string */
+  subject?: string;
   sort: "popular" | "ascending" | "descending";
 }
 
@@ -89,6 +91,11 @@ export async function listBooks(opts: BookListOptions): Promise<{ books: Book[];
   if (opts.topic) {
     const term = `%${opts.topic}%`;
     conditions.push(sql`(${books.subjects} LIKE ${term} OR ${books.bookshelves} LIKE ${term})`);
+  }
+  if (opts.subject) {
+    // Exact subject tag: match books whose semicolon-separated subjects field contains this tag
+    const term = `%${opts.subject}%`;
+    conditions.push(sql`${books.subjects} LIKE ${term}`);
   }
 
   const whereClause = conditions.length > 0

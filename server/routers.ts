@@ -23,6 +23,7 @@ export const appRouter = router({
         page: z.number().int().min(1).default(1),
         search: z.string().optional(),
         topic: z.string().optional(),
+        subject: z.string().optional(),
         sort: z.enum(["popular", "ascending", "descending"]).default("popular"),
       }))
       .query(async ({ input }) => {
@@ -30,6 +31,7 @@ export const appRouter = router({
           page: input.page,
           search: input.search,
           topic: input.topic,
+          subject: input.subject,
           sort: input.sort,
         });
       }),
