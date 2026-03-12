@@ -77,7 +77,8 @@ export function BookCard({ book, shortSummary, onClick, compact = false }: BookC
 }
 
 function CoverFallback({ title }: { title: string }) {
-  const hue = Math.abs(title.charCodeAt(0) * 7 + title.charCodeAt(1) * 13) % 360;
+  const t = title || "?";
+  const hue = Math.abs(t.charCodeAt(0) * 7 + (t.charCodeAt(1) || 0) * 13) % 360;
   return (
     <div
       className="absolute inset-0 flex flex-col items-center justify-center p-3"

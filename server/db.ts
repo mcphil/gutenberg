@@ -106,17 +106,18 @@ export async function listBooks(opts: BookListOptions): Promise<{ books: Book[];
     orderClause = sql`ORDER BY ${books.gutenbergId} DESC`;
   }
 
-  const [countRows] = await db.execute<{ total: number }[]>(
+  // db.execute returns [rows, fields] — destructure to get just the rows array
+  const [countResult] = await db.execute(
     sql`SELECT COUNT(*) as total FROM books ${whereClause}`
   );
-  const total = (countRows as unknown as { total: number }[])[0]?.total ?? 0;
+  const total = (countResult as unknown as { total: number }[])[0]?.total ?? 0;
 
-  const rows = await db.execute<Book[]>(
+  const [bookRows] = await db.execute(
     sql`SELECT * FROM books ${whereClause} ${orderClause} LIMIT ${PAGE_SIZE} OFFSET ${offset}`
   );
 
   return {
-    books: rows as unknown as Book[],
+    books: bookRows as unknown as Book[],
     total: Number(total),
     page: opts.page,
     pages: Math.ceil(Number(total) / PAGE_SIZE),
@@ -133,19 +134,21 @@ export async function getBookById(gutenbergId: number): Promise<Book | undefined
 export async function getRandomBooks(count: number): Promise<Book[]> {
   const db = await getDb();
   if (!db) return [];
-  const result = await db.execute<Book[]>(
+  // db.execute returns [rows, fields] — destructure to get just the rows array
+  const [rows] = await db.execute(
     sql`SELECT * FROM books WHERE type = 'Text' ORDER BY RAND() LIMIT ${count}`
   );
-  return result as unknown as Book[];
+  return rows as unknown as Book[];
 }
 
 export async function getTotalBookCount(): Promise<number> {
   const db = await getDb();
   if (!db) return 0;
-  const [rows] = await db.execute<{ total: number }[]>(
+  // db.execute returns [rows, fields] — destructure to get just the rows array
+  const [result] = await db.execute(
     sql`SELECT COUNT(*) as total FROM books WHERE type = 'Text'`
   );
-  return Number((rows as unknown as { total: number }[])[0]?.total ?? 0);
+  return Number((result as unknown as { total: number }[])[0]?.total ?? 0);
 }
 
 // ─── Book summaries ───────────────────────────────────────────────────────────

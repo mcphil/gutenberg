@@ -1,0 +1,45 @@
+{
+  "query": "SELECT gutenbergId, title, authors, subjects, language FROM books LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute SELECT gutenbergId, title, authors, subjects, language FROM books LIMIT 5;",
+  "rows": [
+    {
+      "gutenbergId": "417",
+      "title": "Dr. Martin Luther's Deutsche Geistliche Lieder The Hymns of Martin Luther Set to Their Original Melodies, With an English Version",
+      "authors": "Luther, Martin, 1483-1546; Allen, Nathan H. (Nathan Hale), 1848-1925 [Editor]; Bacon, Leonard Woolsey, 1830-1907 [Editor]",
+      "subjects": "Hymns, German; Lutheran Church -- Hymns",
+      "language": "de; en"
+    },
+    {
+      "gutenbergId": "607",
+      "title": "Die Augsburger Confession",
+      "authors": "Melanchthon, Philipp, 1497-1560",
+      "subjects": "Lutheran Church -- Doctrines; Theology, Doctrinal",
+      "language": "de; la"
+    },
+    {
+      "gutenbergId": "2054",
+      "title": "Iphigenie auf Tauris",
+      "authors": "Goethe, Johann Wolfgang von, 1749-1832",
+      "subjects": "Iphigenia (Mythological character) -- Drama",
+      "language": "de"
+    },
+    {
+      "gutenbergId": "2146",
+      "title": "Egmont",
+      "authors": "Goethe, Johann Wolfgang von, 1749-1832",
+      "subjects": "Egmont, Lamoraal, Graaf van, 1522-1568 -- Drama; Tragedies (Drama)",
+      "language": "de"
+    },
+    {
+      "gutenbergId": "2174",
+      "title": "Frau und Kindern auf der Spur",
+      "authors": "Rohner, Gerold K.",
+      "subjects": "Fiction; Western stories",
+      "language": "de"
+    }
+  ],
+  "messages": [],
+  "stdout": "gutenbergId\ttitle\tauthors\tsubjects\tlanguage\n417\tDr. Martin Luther's Deutsche Geistliche Lieder The Hymns of Martin Luther Set to Their Original Melodies, With an English Version\tLuther, Martin, 1483-1546; Allen, Nathan H. (Nathan Hale), 1848-1925 [Editor]; Bacon, Leonard Woolsey, 1830-1907 [Editor]\tHymns, German; Lutheran Church -- Hymns\tde; en\n607\tDie Augsburger Confession\tMelanchthon, Philipp, 1497-1560\tLutheran Church -- Doctrines; Theology, Doctrinal\tde; la\n2054\tIphigenie auf Tauris\tGoethe, Johann Wolfgang von, 1749-1832\tIphigenia (Mythological character) -- Drama\tde\n2146\tEgmont\tGoethe, Johann Wolfgang von, 1749-1832\tEgmont, Lamoraal, Graaf van, 1522-1568 -- Drama; Tragedies (Drama)\tde\n2174\tFrau und Kindern auf der Spur\tRohner, Gerold K.\tFiction; Western stories\tde\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}
