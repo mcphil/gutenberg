@@ -49,6 +49,8 @@ export default function Reader({ bookId }: ReaderProps) {
 
   const renditionRef = useRef<Rendition | null>(null);
   const locationRef = useRef<string | number>(0);
+  const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isScrollMode = prefs.readingMode === "scroll";
 
   const { data: book } = trpc.books.byId.useQuery({ id: bookId });
 
@@ -60,6 +62,17 @@ export default function Reader({ bookId }: ReaderProps) {
       locationRef.current = saved.cfi;
     }
   }, [bookId]);
+
+  // Helper: get the scrollable document element inside the EPUB iframe
+  const getScrollDoc = useCallback((): Element | null => {
+    try {
+      const contents = renditionRef.current?.getContents();
+      const doc = (contents as unknown as Array<{ document: Document }>)?.[0]?.document;
+      return doc?.scrollingElement ?? doc?.documentElement ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     if (book) {
@@ -129,12 +142,58 @@ export default function Reader({ bookId }: ReaderProps) {
         const pct = location.start.percentage ?? 0;
         locationRef.current = cfi;
         setCurrentPage(Math.round(pct * 100));
-        saveProgress(bookId, cfi, pct, bookTitle, bookCover);
+        // In scroll mode we capture scrollTop after a short delay so the
+        // browser has finished rendering the new position
+        if (isScrollMode) {
+          setTimeout(() => {
+            const scrollEl = getScrollDoc();
+            const st = scrollEl?.scrollTop ?? 0;
+            saveProgress(bookId, cfi, pct, bookTitle, bookCover, st);
+          }, 120);
+        } else {
+          saveProgress(bookId, cfi, pct, bookTitle, bookCover);
+        }
         const bms = getBookmarksForBook(bookId);
         setIsBookmarked(bms.some((b) => b.cfi === cfi));
       });
+
+      // In scroll mode: also attach a throttled scroll listener for finer
+      // position granularity (saves every 2 s while scrolling)
+      rendition.on("rendered", () => {
+        if (!isScrollMode) return;
+        try {
+          const contents = rendition.getContents();
+          const doc = (contents as unknown as Array<{ document: Document }>)?.[0]?.document;
+          const scrollEl = doc?.scrollingElement ?? doc?.documentElement;
+          if (!scrollEl) return;
+
+          // Restore saved scrollTop after the first render
+          const saved = getProgress(bookId);
+          if (saved?.scrollTop && saved.scrollTop > 0) {
+            setTimeout(() => { scrollEl.scrollTop = saved.scrollTop!; }, 150);
+          }
+
+          const onScroll = () => {
+            if (scrollSaveTimerRef.current) clearTimeout(scrollSaveTimerRef.current);
+            scrollSaveTimerRef.current = setTimeout(() => {
+              const st = scrollEl.scrollTop;
+              const cfi = typeof locationRef.current === "string" ? locationRef.current : "";
+              if (!cfi) return;
+              // Estimate percentage from scrollTop / scrollHeight
+              const pct = scrollEl.scrollHeight > 0
+                ? st / scrollEl.scrollHeight
+                : 0;
+              setCurrentPage(Math.round(pct * 100));
+              saveProgress(bookId, cfi, pct, bookTitle, bookCover, st);
+            }, 2000);
+          };
+          scrollEl.addEventListener("scroll", onScroll, { passive: true });
+        } catch {
+          // ignore
+        }
+      });
     },
-    [applyStyles, bookId, bookTitle, bookCover, saveProgress, getBookmarksForBook]
+    [applyStyles, bookId, bookTitle, bookCover, saveProgress, getBookmarksForBook, isScrollMode, getScrollDoc, getProgress]
   );
 
   // Re-apply styles when preferences change

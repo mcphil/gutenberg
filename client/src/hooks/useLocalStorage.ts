@@ -35,6 +35,7 @@ export interface ReadingProgress {
   lastReadAt: number; // timestamp
   title: string;
   coverUrl?: string;
+  scrollTop?: number; // vertical scroll offset in px (scroll mode only)
 }
 
 export function useReadingProgress() {
@@ -44,10 +45,10 @@ export function useReadingProgress() {
   );
 
   const saveProgress = useCallback(
-    (gutenbergId: number, cfi: string, percentage: number, title: string, coverUrl?: string) => {
+    (gutenbergId: number, cfi: string, percentage: number, title: string, coverUrl?: string, scrollTop?: number) => {
       setProgress((prev) => ({
         ...prev,
-        [gutenbergId]: { gutenbergId, cfi, percentage, lastReadAt: Date.now(), title, coverUrl },
+        [gutenbergId]: { gutenbergId, cfi, percentage, lastReadAt: Date.now(), title, coverUrl, scrollTop },
       }));
     },
     [setProgress]
