@@ -65,7 +65,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
           <CoverFallback title={book.title} />
         )}
 
-        {/* Hover overlay — summary text only, anchored to bottom ~2/3 of cover */}
+        {/* Hover overlay — summary + tags, anchored to bottom ~2/3 of cover */}
         <div
           className={`absolute inset-0 transition-opacity duration-200 ${
             hovered ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -75,12 +75,11 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
               "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.88) 40%, rgba(0,0,0,0.55) 65%, transparent 100%)",
           }}
         >
-          {/* Text anchored to bottom, occupying ~2/3 of the cover height */}
           <div className="absolute bottom-0 left-0 right-0 p-3" style={{ maxHeight: "67%" }}>
             {shortSummary ? (
               <p className="text-white/90 text-xs leading-relaxed overflow-hidden" style={{
                 display: "-webkit-box",
-                WebkitLineClamp: 7,
+                WebkitLineClamp: 6,
                 WebkitBoxOrient: "vertical",
               }}>
                 {shortSummary}
@@ -88,11 +87,24 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
             ) : (
               <p className="text-white/40 text-xs italic">Keine Zusammenfassung</p>
             )}
+            {subjects.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {subjects.slice(0, 3).map((s) => (
+                  <Badge
+                    key={s}
+                    variant="secondary"
+                    className="text-xs px-1.5 py-0 h-4 bg-white/20 text-white border-0"
+                  >
+                    {translateSubject(s)}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Card footer — title, author, tags */}
+      {/* Card footer — title, author, year */}
       <div className={compact ? "p-2" : "p-3"}>
         <h3
           className={`font-semibold text-card-foreground leading-tight mb-0.5 line-clamp-2 ${
@@ -102,20 +114,17 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
         >
           {book.title}
         </h3>
-        <div className="flex items-center gap-1 text-muted-foreground mb-2">
-          <User className="w-3 h-3 shrink-0" />
-          <p className="line-clamp-1 text-xs">{author}</p>
-        </div>
-
-        {!compact && subjects.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {subjects.slice(0, 2).map((s) => (
-              <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 h-4 truncate max-w-[120px]">
-                {translateSubject(s)}
-              </Badge>
-            ))}
+        <div className="flex items-center justify-between gap-1 text-muted-foreground">
+          <div className="flex items-center gap-1 min-w-0">
+            <User className="w-3 h-3 shrink-0" />
+            <p className="line-clamp-1 text-xs">{author}</p>
           </div>
-        )}
+          {book.issued && (
+            <span className="text-xs shrink-0 tabular-nums">
+              {book.issued.substring(0, 4)}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

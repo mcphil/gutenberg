@@ -70,3 +70,4 @@
 - [x] Grid: 5 Spalten statt 6 auf Desktop; Vorschausatz immer sichtbar im Footer; Hover nutzt gesamte Coverfläche für mehr Text (kein Titel/Autor im Overlay)
 - [x] BookCard: Footer zeigt Tags statt Vorschautext; Overlay nur Zusammenfassungstext (~2/3 Coverfläche), keine Tags im Overlay
 - [x] BookCard: 150ms Debounce auf Hover-State gegen Flackern beim schnellen Scrollen
+- [x] BookCard: Jahreszahl im Footer statt Tags; Tags ins Hover-Overlay verschoben
