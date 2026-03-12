@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, User, Sparkles } from "lucide-react";
+import { BookOpen, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import type { LocalBook } from "../../../shared/gutenberg";
@@ -19,18 +19,13 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
   const author = getAuthorDisplay(book);
   const subjects = parseSubjects(book.subjects);
 
-  // Fetch summary on first hover, then cached indefinitely
+  // Fetch summary on first hover, cached indefinitely
   const { data: cachedSummary } = trpc.summaries.getCached.useQuery(
     { gutenbergId: book.gutenbergId },
     { enabled: hovered, staleTime: Infinity }
   );
 
   const shortSummary = propSummary ?? cachedSummary?.shortSummary ?? null;
-
-  // First sentence for the always-visible preview
-  const previewSentence = shortSummary
-    ? shortSummary.split(/(?<=[.!?])\s+/)[0] ?? shortSummary
-    : null;
 
   return (
     <div
@@ -57,46 +52,34 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
           <CoverFallback title={book.title} />
         )}
 
-        {/* Hover overlay — full cover, summary only (no title/author repeat) */}
+        {/* Hover overlay — summary text only, anchored to bottom ~2/3 of cover */}
         <div
-          className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-200 ${
+          className={`absolute inset-0 transition-opacity duration-200 ${
             hovered ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
           style={{
             background:
-              "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.82) 45%, rgba(0,0,0,0.35) 75%, rgba(0,0,0,0.05) 100%)",
+              "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.88) 40%, rgba(0,0,0,0.55) 65%, transparent 100%)",
           }}
         >
-          <div className="p-3">
+          {/* Text anchored to bottom, occupying ~2/3 of the cover height */}
+          <div className="absolute bottom-0 left-0 right-0 p-3" style={{ maxHeight: "67%" }}>
             {shortSummary ? (
-              <div className="flex items-start gap-1.5">
-                <Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" />
-                <p className="text-white/90 text-xs leading-relaxed line-clamp-[8]">
-                  {shortSummary}
-                </p>
-              </div>
+              <p className="text-white/90 text-xs leading-relaxed overflow-hidden" style={{
+                display: "-webkit-box",
+                WebkitLineClamp: 7,
+                WebkitBoxOrient: "vertical",
+              }}>
+                {shortSummary}
+              </p>
             ) : (
               <p className="text-white/40 text-xs italic">Keine Zusammenfassung</p>
-            )}
-
-            {subjects.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2.5">
-                {subjects.slice(0, 3).map((s) => (
-                  <Badge
-                    key={s}
-                    variant="secondary"
-                    className="text-xs px-1.5 py-0 h-4 bg-white/20 text-white border-0 truncate max-w-[110px]"
-                  >
-                    {translateSubject(s)}
-                  </Badge>
-                ))}
-              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Card footer — always visible */}
+      {/* Card footer — title, author, tags */}
       <div className={compact ? "p-2" : "p-3"}>
         <h3
           className={`font-semibold text-card-foreground leading-tight mb-0.5 line-clamp-2 ${
@@ -106,16 +89,19 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
         >
           {book.title}
         </h3>
-        <div className="flex items-center gap-1 text-muted-foreground mb-1.5">
+        <div className="flex items-center gap-1 text-muted-foreground mb-2">
           <User className="w-3 h-3 shrink-0" />
           <p className="line-clamp-1 text-xs">{author}</p>
         </div>
 
-        {/* Always-visible preview sentence */}
-        {!compact && previewSentence && (
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-            {previewSentence}
-          </p>
+        {!compact && subjects.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {subjects.slice(0, 2).map((s) => (
+              <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 h-4 truncate max-w-[120px]">
+                {translateSubject(s)}
+              </Badge>
+            ))}
+          </div>
         )}
       </div>
     </div>
@@ -150,8 +136,7 @@ export function BookCardSkeleton() {
       <div className="p-3 space-y-2">
         <div className="skeleton h-4 w-full rounded" />
         <div className="skeleton h-3 w-2/3 rounded" />
-        <div className="skeleton h-3 w-full rounded" />
-        <div className="skeleton h-3 w-4/5 rounded" />
+        <div className="skeleton h-3 w-1/2 rounded" />
       </div>
     </div>
   );
