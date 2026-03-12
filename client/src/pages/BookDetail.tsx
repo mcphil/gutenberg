@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, BookOpen, Download, Loader2, Sparkles, Tag, User, Calendar } from "lucide-react";
+import { ArrowLeft, BookOpen, Download, Loader2, Sparkles, Tag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { getAuthorDisplay, getAuthorYears, getCoverUrl, getEpubUrl, translateSubject } from "../../../shared/gutenberg";
-import { useRecentBooks } from "@/hooks/useLocalStorage";
-import { useReadingProgress } from "@/hooks/useLocalStorage";
+import {
+  getAuthorDisplay, parseAuthors, getAuthorYears, getCoverUrl,
+  parseSubjects, parseBookshelves, translateSubject
+} from "../../../shared/gutenberg";
+import { useRecentBooks, useReadingProgress } from "@/hooks/useLocalStorage";
 
 interface BookDetailProps {
   bookId: number;
@@ -29,23 +31,22 @@ export default function BookDetail({ bookId }: BookDetailProps) {
   useEffect(() => {
     if (book) {
       addRecentBook({
-        gutenbergId: book.id,
+        gutenbergId: book.gutenbergId,
         title: book.title,
         authors: getAuthorDisplay(book),
         coverUrl: getCoverUrl(book),
       });
     }
-  }, [book]);
+  }, [book?.gutenbergId]);
 
   const handleGenerateSummary = () => {
     if (!book) return;
     setSummaryRequested(true);
     generateSummary.mutate({
-      gutenbergId: book.id,
+      gutenbergId: book.gutenbergId,
       title: book.title,
-      authors: book.authors,
-      subjects: book.subjects,
-      existingSummary: book.summaries?.[0],
+      authorsRaw: book.authors ?? "",
+      subjectsRaw: book.subjects ?? "",
       type: "both",
     });
   };
@@ -54,12 +55,6 @@ export default function BookDetail({ bookId }: BookDetailProps) {
     shortSummary: cachedSummary.shortSummary ?? "",
     longSummary: cachedSummary.longSummary ?? "",
   } : null);
-
-  const gutenbergSummary = book?.summaries?.[0]
-    ?.replace(/\(This is an automatically generated summary\.\)/, "")
-    .trim();
-
-  const epubUrl = book ? getEpubUrl(book) : null;
 
   if (isLoading) {
     return <BookDetailSkeleton />;
@@ -75,6 +70,9 @@ export default function BookDetail({ bookId }: BookDetailProps) {
   }
 
   const coverUrl = getCoverUrl(book);
+  const authors = parseAuthors(book.authors);
+  const subjects = parseSubjects(book.subjects);
+  const bookshelves = parseBookshelves(book.bookshelves);
 
   return (
     <div className="container py-6 max-w-4xl mx-auto">
@@ -138,31 +136,37 @@ export default function BookDetail({ bookId }: BookDetailProps) {
           </h1>
 
           {/* Authors */}
-          {book.authors.map((author) => (
+          {authors.length > 0 ? authors.map((author) => (
             <div key={author.name} className="flex items-center gap-2 text-muted-foreground mb-1">
               <User className="w-4 h-4 shrink-0" />
               <span className="text-sm">
-                {getAuthorDisplay({ ...book, authors: [author] })}{" "}
+                {author.displayName}{" "}
                 <span className="text-xs">{getAuthorYears(author)}</span>
               </span>
             </div>
-          ))}
+          )) : (
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <User className="w-4 h-4 shrink-0" />
+              <span className="text-sm">Unbekannter Autor</span>
+            </div>
+          )}
 
-          {/* Downloads */}
-          <div className="flex items-center gap-2 text-muted-foreground mt-2 mb-4">
-            <Download className="w-4 h-4 shrink-0" />
-            <span className="text-sm">{book.download_count.toLocaleString("de-DE")} Downloads</span>
-          </div>
+          {/* Year */}
+          {book.issued && (
+            <div className="flex items-center gap-2 text-muted-foreground mt-2 mb-4">
+              <span className="text-sm">{book.issued.substring(0, 4)}</span>
+            </div>
+          )}
 
           {/* Subjects */}
-          {book.subjects.length > 0 && (
+          {subjects.length > 0 && (
             <div className="mb-5">
               <div className="flex items-center gap-1.5 mb-2">
                 <Tag className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Themen</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {book.subjects.map((s) => (
+                {subjects.map((s) => (
                   <Badge key={s} variant="secondary" className="text-xs">
                     {translateSubject(s)}
                   </Badge>
@@ -172,10 +176,10 @@ export default function BookDetail({ bookId }: BookDetailProps) {
           )}
 
           {/* Bookshelves */}
-          {book.bookshelves.length > 0 && (
+          {bookshelves.length > 0 && (
             <div className="mb-5">
               <div className="flex flex-wrap gap-1.5">
-                {book.bookshelves.map((s) => (
+                {bookshelves.map((s) => (
                   <Badge key={s} variant="outline" className="text-xs">
                     {s}
                   </Badge>
@@ -228,7 +232,6 @@ export default function BookDetail({ bookId }: BookDetailProps) {
               </div>
             )}
 
-            {/* No summary yet — show prompt to generate */}
             {!summary?.longSummary && !generateSummary.isPending && (
               <p className="text-sm text-muted-foreground italic">
                 Noch keine Zusammenfassung vorhanden. Klicke auf „KI-Zusammenfassung" um eine neutrale, deutschsprachige Zusammenfassung zu generieren.
@@ -238,26 +241,19 @@ export default function BookDetail({ bookId }: BookDetailProps) {
 
           {/* CTA */}
           <div className="flex flex-wrap gap-3">
-            {epubUrl ? (
-              <Button
-                size="lg"
-                className="gap-2"
-                onClick={() => navigate(`/read/${book.id}`)}
-              >
-                <BookOpen className="w-5 h-5" />
-                {progress ? "Weiterlesen" : "Jetzt lesen"}
-              </Button>
-            ) : (
-              <Button size="lg" variant="outline" disabled className="gap-2">
-                <BookOpen className="w-5 h-5" />
-                Kein EPUB verfügbar
-              </Button>
-            )}
+            <Button
+              size="lg"
+              className="gap-2"
+              onClick={() => navigate(`/read/${book.gutenbergId}`)}
+            >
+              <BookOpen className="w-5 h-5" />
+              {progress ? "Weiterlesen" : "Jetzt lesen"}
+            </Button>
             <Button
               variant="outline"
               size="lg"
               className="gap-2"
-              onClick={() => window.open(`https://www.gutenberg.org/ebooks/${book.id}`, "_blank")}
+              onClick={() => window.open(`https://www.gutenberg.org/ebooks/${book.gutenbergId}`, "_blank")}
             >
               <Download className="w-5 h-5" />
               Auf Gutenberg.org

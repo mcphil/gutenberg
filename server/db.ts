@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, like, or, sql, desc, asc } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, bookSummaries, InsertBookSummary } from "../drizzle/schema";
+import { InsertUser, users, bookSummaries, InsertBookSummary, books, Book } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -54,7 +54,102 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// Book summaries
+// ─── Book catalog queries (from pg_catalog.csv import) ───────────────────────
+
+const PAGE_SIZE = 32;
+
+export interface BookListOptions {
+  page: number;
+  search?: string;
+  topic?: string;
+  sort: "popular" | "ascending" | "descending";
+}
+
+/**
+ * List German books from the local catalog with pagination, search and filter.
+ * "popular" sort uses download_count from bookSummaries if available, otherwise
+ * falls back to gutenbergId descending (newer books tend to be more popular).
+ */
+export async function listBooks(opts: BookListOptions): Promise<{ books: Book[]; total: number; page: number; pages: number }> {
+  const db = await getDb();
+  if (!db) return { books: [], total: 0, page: 1, pages: 0 };
+
+  const offset = (opts.page - 1) * PAGE_SIZE;
+
+  // Build WHERE conditions
+  const conditions: ReturnType<typeof sql>[] = [
+    sql`${books.type} = 'Text'`,
+  ];
+
+  if (opts.search) {
+    const term = `%${opts.search}%`;
+    conditions.push(sql`(${books.title} LIKE ${term} OR ${books.authors} LIKE ${term})`);
+  }
+
+  if (opts.topic) {
+    const term = `%${opts.topic}%`;
+    conditions.push(sql`(${books.subjects} LIKE ${term} OR ${books.bookshelves} LIKE ${term})`);
+  }
+
+  const whereClause = conditions.length > 0
+    ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+    : sql``;
+
+  // Sort
+  let orderClause: ReturnType<typeof sql>;
+  if (opts.sort === "ascending") {
+    orderClause = sql`ORDER BY ${books.title} ASC`;
+  } else if (opts.sort === "descending") {
+    orderClause = sql`ORDER BY ${books.title} DESC`;
+  } else {
+    // "popular" — sort by gutenbergId DESC as a proxy (higher IDs = more recently added)
+    orderClause = sql`ORDER BY ${books.gutenbergId} DESC`;
+  }
+
+  const [countRows] = await db.execute<{ total: number }[]>(
+    sql`SELECT COUNT(*) as total FROM books ${whereClause}`
+  );
+  const total = (countRows as unknown as { total: number }[])[0]?.total ?? 0;
+
+  const rows = await db.execute<Book[]>(
+    sql`SELECT * FROM books ${whereClause} ${orderClause} LIMIT ${PAGE_SIZE} OFFSET ${offset}`
+  );
+
+  return {
+    books: rows as unknown as Book[],
+    total: Number(total),
+    page: opts.page,
+    pages: Math.ceil(Number(total) / PAGE_SIZE),
+  };
+}
+
+export async function getBookById(gutenbergId: number): Promise<Book | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(books).where(eq(books.gutenbergId, gutenbergId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getRandomBooks(count: number): Promise<Book[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db.execute<Book[]>(
+    sql`SELECT * FROM books WHERE type = 'Text' ORDER BY RAND() LIMIT ${count}`
+  );
+  return result as unknown as Book[];
+}
+
+export async function getTotalBookCount(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const [rows] = await db.execute<{ total: number }[]>(
+    sql`SELECT COUNT(*) as total FROM books WHERE type = 'Text'`
+  );
+  return Number((rows as unknown as { total: number }[])[0]?.total ?? 0);
+}
+
+// ─── Book summaries ───────────────────────────────────────────────────────────
+
 export async function getBookSummary(gutenbergId: number) {
   const db = await getDb();
   if (!db) return undefined;

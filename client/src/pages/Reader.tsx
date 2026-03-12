@@ -14,9 +14,7 @@ import {
 } from "@/components/ui/popover";
 import { trpc } from "@/lib/trpc";
 import { useReadingProgress, useBookmarks, useReaderPreferences } from "@/hooks/useLocalStorage";
-import {
-  getEpubProxyUrl, getCoverUrl, getCoverUrlById
-} from "../../../shared/gutenberg";
+import { getEpubProxyUrl, getCoverUrlById } from "../../../shared/gutenberg";
 
 interface ReaderProps {
   bookId: number;
@@ -162,7 +160,7 @@ export default function Reader({ bookId }: ReaderProps) {
   }, []);
 
   // Use our own EPUB proxy endpoint — never stream directly from gutenberg.org
-  const epubUrl = book ? getEpubProxyUrl(book) : null;
+  const epubUrl = getEpubProxyUrl(bookId);
   const theme = THEME_STYLES[prefs.theme];
 
   if (!epubUrl && book) {

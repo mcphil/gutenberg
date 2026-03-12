@@ -4,20 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
-import { getBookSummary, upsertBookSummary } from "./db";
-import type { GutendexResponse, GutenbergBook } from "../shared/gutenberg";
-
-const GUTENDEX_BASE = "https://gutendex.com";
-
-async function fetchGutendex(path: string): Promise<unknown> {
-  const res = await fetch(`${GUTENDEX_BASE}${path}`, {
-    headers: {
-      "User-Agent": "GutenbergLeser/1.0 (personal reading app; contact: gutenbergleser@example.com)",
-    },
-  });
-  if (!res.ok) throw new Error(`Gutendex error: ${res.status}`);
-  return res.json();
-}
+import { getBookSummary, upsertBookSummary, listBooks, getBookById, getRandomBooks, getTotalBookCount } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -31,7 +18,7 @@ export const appRouter = router({
   }),
 
   books: router({
-    // List German books with search and filter
+    // List German books from local catalog with search and filter
     list: publicProcedure
       .input(z.object({
         page: z.number().int().min(1).default(1),
@@ -40,34 +27,33 @@ export const appRouter = router({
         sort: z.enum(["popular", "ascending", "descending"]).default("popular"),
       }))
       .query(async ({ input }) => {
-        const params = new URLSearchParams();
-        params.set("languages", "de");
-        params.set("page", String(input.page));
-        if (input.search) params.set("search", input.search);
-        if (input.topic) params.set("topic", input.topic);
-        if (input.sort !== "popular") params.set("sort", input.sort);
-
-        const data = await fetchGutendex(`/books/?${params.toString()}`) as GutendexResponse;
-        return data;
+        return listBooks({
+          page: input.page,
+          search: input.search,
+          topic: input.topic,
+          sort: input.sort,
+        });
       }),
 
-    // Get a single book by Gutenberg ID
+    // Get a single book by Gutenberg ID from local catalog
     byId: publicProcedure
       .input(z.object({ id: z.number().int().positive() }))
       .query(async ({ input }) => {
-        const data = await fetchGutendex(`/books/${input.id}`) as GutenbergBook;
-        return data;
+        const book = await getBookById(input.id);
+        if (!book) throw new Error(`Book ${input.id} not found in local catalog`);
+        return book;
       }),
 
-    // Get subjects/topics for German books (for filter UI)
-    subjects: publicProcedure.query(async () => {
-      // Return a curated list of common German literature subjects
-      return [
-        "Fiction", "Drama", "Poetry", "Novel", "Short stories",
-        "History", "Philosophy", "Science", "Biography",
-        "Fairy tales", "Adventure", "Romance", "Detective fiction",
-        "Classical literature", "Expressionism", "Realism",
-      ];
+    // Get random books for browse/swipe mode
+    random: publicProcedure
+      .input(z.object({ count: z.number().int().min(1).max(50).default(20) }))
+      .query(async ({ input }) => {
+        return getRandomBooks(input.count);
+      }),
+
+    // Get total count of German books in local catalog
+    count: publicProcedure.query(async () => {
+      return getTotalBookCount();
     }),
   }),
 
@@ -77,13 +63,10 @@ export const appRouter = router({
       .input(z.object({
         gutenbergId: z.number().int().positive(),
         title: z.string(),
-        authors: z.array(z.object({
-          name: z.string(),
-          birth_year: z.number().nullable(),
-          death_year: z.number().nullable(),
-        })),
-        subjects: z.array(z.string()),
-        existingSummary: z.string().optional(),
+        /** Raw authors CSV string from pg_catalog.csv, e.g. "Kafka, Franz, 1883-1924" */
+        authorsRaw: z.string(),
+        /** Semicolon-separated subjects from pg_catalog.csv */
+        subjectsRaw: z.string().optional(),
         type: z.enum(["short", "long", "both"]).default("both"),
       }))
       .mutation(async ({ input }) => {
@@ -98,25 +81,24 @@ export const appRouter = router({
           };
         }
 
-        const authorNames = input.authors
-          .map((a) => {
-            const parts = a.name.split(", ");
-            return parts.length === 2 ? `${parts[1]} ${parts[0]}` : a.name;
-          })
+        // Parse authors from CSV format "Lastname, Firstname, YYYY-YYYY"
+        const authorParts = input.authorsRaw.split(";").map((a) => a.trim()).filter(Boolean);
+        const authorDisplay = authorParts.map((raw) => {
+          const yearMatch = raw.match(/,\s*(\d{4})?-(\d{4})?$/);
+          const name = yearMatch ? raw.slice(0, raw.lastIndexOf(",")).trim() : raw;
+          const parts = name.split(", ");
+          return parts.length === 2 ? `${parts[1]} ${parts[0]}` : name;
+        }).join(", ");
+
+        // Parse subjects
+        const subjects = (input.subjectsRaw || "")
+          .split(";")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 8)
           .join(", ");
 
-        const authorYears = input.authors[0]
-          ? input.authors[0].birth_year && input.authors[0].death_year
-            ? ` (${input.authors[0].birth_year}–${input.authors[0].death_year})`
-            : ""
-          : "";
-
-        const subjectList = input.subjects.slice(0, 8).join(", ");
-        const existingContext = input.existingSummary
-          ? `\n\nVorhandene Beschreibung (als Kontext): ${input.existingSummary}`
-          : "";
-
-        const systemPrompt = `Du bist ein sachlicher Literaturkritiker. Deine Aufgabe ist es, neutrale, informative Zusammenfassungen von Büchern zu schreiben, die Lesern helfen zu entscheiden, ob sie ihre Lesezeit in ein Buch investieren möchten. 
+        const systemPrompt = `Du bist ein sachlicher Literaturkritiker. Deine Aufgabe ist es, neutrale, informative Zusammenfassungen von Büchern zu schreiben, die Lesern helfen zu entscheiden, ob sie ihre Lesezeit in ein Buch investieren möchten.
 
 Wichtige Regeln:
 - Bleibe streng neutral und sachlich — keine Wertungen wie "fesselnd", "brillant", "meisterhaft"
@@ -128,8 +110,8 @@ Wichtige Regeln:
         const userPrompt = `Schreibe zwei Zusammenfassungen für folgendes Buch:
 
 Titel: "${input.title}"
-Autor: ${authorNames}${authorYears}
-Themen/Kategorien: ${subjectList}${existingContext}
+Autor: ${authorDisplay}
+Themen/Kategorien: ${subjects || "nicht angegeben"}
 
 Erstelle:
 1. KURZZUSAMMENFASSUNG (max. 2 Sätze, ~30 Wörter): Gattung, Epoche und zentrales Thema
@@ -167,7 +149,6 @@ Antworte im JSON-Format:
         const rawContent = response.choices?.[0]?.message?.content;
         if (!rawContent) throw new Error("No LLM response");
         const content = typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent);
-
         const parsed = JSON.parse(content) as { short: string; long: string };
 
         // Cache in DB

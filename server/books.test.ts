@@ -2,16 +2,49 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
-// Mock the DB helpers
-vi.mock("./db", () => ({
-  getBookSummary: vi.fn().mockResolvedValue(null),
-  upsertBookSummary: vi.fn().mockResolvedValue(undefined),
-  getDb: vi.fn().mockResolvedValue(null),
-  upsertUser: vi.fn().mockResolvedValue(undefined),
-  getUserByOpenId: vi.fn().mockResolvedValue(undefined),
-}));
+// ─── Mock local DB helpers ────────────────────────────────────────────────────
 
-// Mock the LLM
+vi.mock("./db", () => {
+  const book = {
+    gutenbergId: 5740,
+    type: "Text",
+    issued: "2004-01-01",
+    title: "Tractatus Logico-Philosophicus",
+    language: "de",
+    authors: "Wittgenstein, Ludwig, 1889-1951",
+    subjects: "Logic; Philosophy",
+    locc: "BC",
+    bookshelves: "DE Philosophie",
+    importedAt: new Date("2026-03-12"),
+  };
+  return {
+    listBooks: vi.fn().mockResolvedValue({ books: [book], total: 2420, page: 1, pages: 121 }),
+    getBookById: vi.fn().mockResolvedValue(book),
+    getRandomBooks: vi.fn().mockResolvedValue([book]),
+    getTotalBookCount: vi.fn().mockResolvedValue(2420),
+    getBookSummary: vi.fn().mockResolvedValue(null),
+    upsertBookSummary: vi.fn().mockResolvedValue(undefined),
+    getDb: vi.fn().mockResolvedValue(null),
+    upsertUser: vi.fn().mockResolvedValue(undefined),
+    getUserByOpenId: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
+const mockLocalBook = {
+  gutenbergId: 5740,
+  type: "Text",
+  issued: "2004-01-01",
+  title: "Tractatus Logico-Philosophicus",
+  language: "de",
+  authors: "Wittgenstein, Ludwig, 1889-1951",
+  subjects: "Logic; Philosophy",
+  locc: "BC",
+  bookshelves: "DE Philosophie",
+  importedAt: new Date("2026-03-12"),
+};
+
+// ─── Mock LLM ─────────────────────────────────────────────────────────────────
+
 vi.mock("./_core/llm", () => ({
   invokeLLM: vi.fn().mockResolvedValue({
     choices: [
@@ -19,43 +52,13 @@ vi.mock("./_core/llm", () => ({
         message: {
           content: JSON.stringify({
             short: "Ein philosophisches Werk über Logik und Sprache.",
-            long: "Der Tractatus Logico-Philosophicus ist ein frühes Werk Ludwig Wittgensteins, das 1921 veröffentlicht wurde. Es behandelt die Grenzen der Sprache und ihre Beziehung zur Welt. Wittgenstein argumentiert, dass die Welt aus Tatsachen besteht und Sprache diese Tatsachen abbildet. Das Werk endet mit dem berühmten Satz: Worüber man nicht sprechen kann, darüber muss man schweigen.",
+            long: "Der Tractatus Logico-Philosophicus ist ein frühes Werk Ludwig Wittgensteins, das 1921 veröffentlicht wurde. Es behandelt die Grenzen der Sprache und ihre Beziehung zur Welt.",
           }),
         },
       },
     ],
   }),
 }));
-
-// Mock fetch for Gutendex API
-const mockBook = {
-  id: 5740,
-  title: "Tractatus Logico-Philosophicus",
-  authors: [{ name: "Wittgenstein, Ludwig", birth_year: 1889, death_year: 1951 }],
-  summaries: ["A philosophical treatise on logic."],
-  subjects: ["Logic", "Philosophy"],
-  bookshelves: [],
-  languages: ["de"],
-  copyright: false,
-  media_type: "Text",
-  formats: {
-    "application/epub+zip": "https://www.gutenberg.org/ebooks/5740.epub.images",
-    "image/jpeg": "https://www.gutenberg.org/cache/epub/5740/pg5740.cover.medium.jpg",
-  },
-  download_count: 10500,
-};
-
-const mockListResponse = {
-  count: 2420,
-  next: "https://gutendex.com/books/?languages=de&page=2",
-  previous: null,
-  results: [mockBook],
-};
-
-global.fetch = vi.fn().mockResolvedValue({
-  ok: true,
-  json: () => Promise.resolve(mockListResponse),
-} as Response);
 
 function createCtx(): TrpcContext {
   return {
@@ -65,89 +68,90 @@ function createCtx(): TrpcContext {
   };
 }
 
+// ─── books.list ───────────────────────────────────────────────────────────────
+
 describe("books.list", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockListResponse),
-    });
   });
 
-  it("fetches German books with default params", async () => {
+  it("returns books from local DB with default params", async () => {
+    const { listBooks } = await import("./db");
     const caller = appRouter.createCaller(createCtx());
     const result = await caller.books.list({ page: 1, sort: "popular" });
 
-    expect(result.count).toBe(2420);
-    expect(result.results).toHaveLength(1);
-    expect(result.results[0].title).toBe("Tractatus Logico-Philosophicus");
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("languages=de"),
-      expect.any(Object)
-    );
+    expect(result.total).toBe(2420);
+    expect(result.books).toHaveLength(1);
+    expect(result.books[0].title).toBe("Tractatus Logico-Philosophicus");
+    expect(listBooks).toHaveBeenCalledWith(expect.objectContaining({ page: 1, sort: "popular" }));
   });
 
-  it("passes search query to Gutendex", async () => {
+  it("passes search query to listBooks", async () => {
+    const { listBooks } = await import("./db");
     const caller = appRouter.createCaller(createCtx());
     await caller.books.list({ page: 1, search: "Kafka", sort: "popular" });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("search=Kafka"),
-      expect.any(Object)
-    );
+    expect(listBooks).toHaveBeenCalledWith(expect.objectContaining({ search: "Kafka" }));
   });
 
-  it("passes topic filter to Gutendex", async () => {
+  it("passes topic filter to listBooks", async () => {
+    const { listBooks } = await import("./db");
     const caller = appRouter.createCaller(createCtx());
     await caller.books.list({ page: 1, topic: "drama", sort: "popular" });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("topic=drama"),
-      expect.any(Object)
-    );
+    expect(listBooks).toHaveBeenCalledWith(expect.objectContaining({ topic: "drama" }));
   });
 
-  it("passes sort=ascending to Gutendex", async () => {
+  it("passes sort=ascending to listBooks", async () => {
+    const { listBooks } = await import("./db");
     const caller = appRouter.createCaller(createCtx());
     await caller.books.list({ page: 1, sort: "ascending" });
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("sort=ascending"),
-      expect.any(Object)
-    );
+    expect(listBooks).toHaveBeenCalledWith(expect.objectContaining({ sort: "ascending" }));
   });
 
-  it("does NOT pass sort param for popular (default)", async () => {
+  it("passes sort=popular to listBooks", async () => {
+    const { listBooks } = await import("./db");
     const caller = appRouter.createCaller(createCtx());
     await caller.books.list({ page: 1, sort: "popular" });
 
-    const url = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-    expect(url).not.toContain("sort=popular");
+    expect(listBooks).toHaveBeenCalledWith(expect.objectContaining({ sort: "popular" }));
   });
 });
+
+// ─── books.byId ───────────────────────────────────────────────────────────────
 
 describe("books.byId", () => {
   beforeEach(() => {
-    (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(mockBook),
-    });
+    vi.clearAllMocks();
   });
 
-  it("fetches a single book by ID", async () => {
+  it("fetches a single book by Gutenberg ID from local catalog", async () => {
+    const { getBookById } = await import("./db");
     const caller = appRouter.createCaller(createCtx());
     const result = await caller.books.byId({ id: 5740 });
 
-    expect(result.id).toBe(5740);
+    expect(result.gutenbergId).toBe(5740);
     expect(result.title).toBe("Tractatus Logico-Philosophicus");
-    expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/books/5740"),
-      expect.any(Object)
-    );
+    expect(getBookById).toHaveBeenCalledWith(5740);
+  });
+
+  it("throws when book is not found", async () => {
+    const { getBookById } = await import("./db");
+    vi.mocked(getBookById).mockResolvedValueOnce(undefined);
+
+    const caller = appRouter.createCaller(createCtx());
+    await expect(caller.books.byId({ id: 99999 })).rejects.toThrow("not found");
   });
 });
 
+// ─── summaries.generate ───────────────────────────────────────────────────────
+
 describe("summaries.generate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("generates a summary via LLM when no cache exists", async () => {
     const { invokeLLM } = await import("./_core/llm");
     const { upsertBookSummary } = await import("./db");
@@ -156,8 +160,8 @@ describe("summaries.generate", () => {
     const result = await caller.summaries.generate({
       gutenbergId: 5740,
       title: "Tractatus Logico-Philosophicus",
-      authors: [{ name: "Wittgenstein, Ludwig", birth_year: 1889, death_year: 1951 }],
-      subjects: ["Logic", "Philosophy"],
+      authorsRaw: "Wittgenstein, Ludwig, 1889-1951",
+      subjectsRaw: "Logic; Philosophy",
       type: "both",
     });
 
@@ -174,37 +178,26 @@ describe("summaries.generate", () => {
     const { getBookSummary } = await import("./db");
     const { invokeLLM } = await import("./_core/llm");
 
-    vi.mocked(invokeLLM).mockClear();
     vi.mocked(getBookSummary).mockResolvedValueOnce({
       id: 1,
       gutenbergId: 5740,
       shortSummary: "Cached short summary.",
       longSummary: "Cached long summary about Wittgenstein.",
       generatedAt: new Date(),
+      coverCached: false,
+      epubCached: false,
     });
 
     const caller = appRouter.createCaller(createCtx());
     const result = await caller.summaries.generate({
       gutenbergId: 5740,
       title: "Tractatus",
-      authors: [{ name: "Wittgenstein, Ludwig", birth_year: 1889, death_year: 1951 }],
-      subjects: ["Logic"],
+      authorsRaw: "Wittgenstein, Ludwig, 1889-1951",
       type: "both",
     });
 
     expect(result.fromCache).toBe(true);
     expect(result.shortSummary).toBe("Cached short summary.");
     expect(invokeLLM).not.toHaveBeenCalled();
-  });
-});
-
-describe("books.subjects", () => {
-  it("returns a list of subject strings", async () => {
-    const caller = appRouter.createCaller(createCtx());
-    const result = await caller.books.subjects();
-
-    expect(Array.isArray(result)).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
-    expect(result).toContain("Fiction");
   });
 });

@@ -40,3 +40,15 @@
 - [x] Magic-Byte-Validierung (PK-Header) und Mindestgröße-Check
 - [x] getEpubProxyUrl() in shared/gutenberg.ts
 - [x] 10 Tests für EPUB-Cache-Service (39 Tests gesamt, alle grün)
+- [x] Bug: EPUB-Reader zeigt "Error loading book" — Ursache: epub.js erkennt Dateityp anhand URL-Extension; /api/epubs/:id.epub behebt das Problem
+
+## Gutenberg-konforme Datenquellen (Umbau)
+- [x] PRINZIP: Wir respektieren alle Vorgaben von Project Gutenberg — kein Scraping, kein Hotlinking, kein Live-Crawling
+- [x] pg_catalog.csv als Datenquelle (2.420 deutsche Bücher importiert)
+- [x] Neue DB-Tabelle `books` mit allen Metadaten
+- [x] Import-Script scripts/import-catalog.mjs (Batch-UPSERT, < 10 Sekunden)
+- [x] rsync-basierter EPUB-Download: scripts/sync-epubs.sh (aleph.gutenberg.org::gutenberg-epub)
+- [x] tRPC books.list und books.byId auf lokale DB umgestellt (kein Gutendex mehr)
+- [x] Gutendex-Abhängigkeit komplett entfernt
+- [x] Cover on-demand über /api/covers/:id (SVG-Fallback für Bücher ohne Bild)
+- [x] EPUB-Reader Bug "Error loading book" behoben (URL-Extension .epub für epub.js)

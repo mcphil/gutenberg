@@ -73,9 +73,11 @@ async function startServer() {
     }
   });
   // EPUB proxy — downloads on first request, serves from local disk thereafter.
-  // Query param: ?url=... (the known Gutendex EPUB URL, tried first before fallbacks)
+  // Accepts both /api/epubs/22367 and /api/epubs/22367.epub
+  // The .epub suffix is required by epub.js for correct file-type detection.
   app.get("/api/epubs/:id", async (req, res) => {
-    const id = parseInt(req.params.id ?? "", 10);
+    const rawId = (req.params.id ?? "").replace(/\.epub$/i, "");
+    const id = parseInt(rawId, 10);
     if (isNaN(id) || id <= 0) {
       res.status(400).json({ error: "Invalid book ID" });
       return;

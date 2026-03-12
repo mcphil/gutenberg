@@ -1,0 +1,8 @@
+{
+  "query": "CREATE TABLE `books` (\n\t`gutenbergId` int NOT NULL,\n\t`type` varchar(32) NOT NULL DEFAULT 'Text',\n\t`issued` varchar(16),\n\t`title` text NOT NULL,\n\t`language` varchar(64) NOT NULL,\n\t`authors` text,\n\t`subjects` text,\n\t`locc` varchar(64),\n\t`bookshelves` text,\n\t`importedAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `books_gutenbergId` PRIMARY KEY(`gutenbergId`)\n);\nCREATE INDEX `title_idx` ON `books` (`title`);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute CREATE TABLE `books` (\n\t`gutenbergId` int NOT NULL,\n\t`type` varchar(32) NOT NULL DEFAULT 'Text',\n\t`issued` varchar(16),\n\t`title` text NOT NULL,\n\t`language` varchar(64) NOT NULL,\n\t`authors` text,\n\t`subjects` text,\n\t`locc` varchar(64),\n\t`bookshelves` text,\n\t`importedAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `books_gutenbergId` PRIMARY KEY(`gutenbergId`)\n);\nCREATE INDEX `title_idx` ON `books` (`title`);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1170 (42000) at line 14: BLOB/TEXT column 'title' used in key specification without a key length"
+  ]
+}

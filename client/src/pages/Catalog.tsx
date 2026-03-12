@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { BookCard, BookCardSkeleton } from "@/components/BookCard";
 import { FilterPanel } from "@/components/FilterPanel";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { GutenbergBook } from "../../../shared/gutenberg";
+import { getAuthorDisplay, getCoverUrl, type LocalBook } from "../../../shared/gutenberg";
 
 interface CatalogProps {
   view: "grid" | "list";
@@ -23,15 +23,15 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
 
   const { data, isLoading, isFetching } = trpc.books.list.useQuery(
     { page, search: searchQuery || undefined, topic: selectedSubject || undefined, sort: sortBy },
-    { staleTime: 5 * 60 * 1000, placeholderData: (prev) => prev }
+    { staleTime: 5 * 60 * 1000 }
   );
 
-  const books = data?.results ?? [];
-  const totalCount = data?.count ?? 0;
-  const totalPages = Math.ceil(totalCount / 32);
+  const books = data?.books ?? [];
+  const totalCount = data?.total ?? 0;
+  const totalPages = data?.pages ?? 0;
 
   const handleBookClick = useCallback(
-    (book: GutenbergBook) => navigate(`/book/${book.id}`),
+    (book: LocalBook) => navigate(`/book/${book.gutenbergId}`),
     [navigate]
   );
 
@@ -61,12 +61,12 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
           : books.map((book) =>
               view === "grid" ? (
                 <BookCard
-                  key={book.id}
+                  key={book.gutenbergId}
                   book={book}
                   onClick={() => handleBookClick(book)}
                 />
               ) : (
-                <ListRow key={book.id} book={book} onClick={() => handleBookClick(book)} />
+                <ListRow key={book.gutenbergId} book={book} onClick={() => handleBookClick(book)} />
               )
             )}
       </div>
@@ -111,16 +111,10 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
 
 // ─── List Row ────────────────────────────────────────────────
 
-import { BookOpen, Download } from "lucide-react";
-import { getAuthorDisplay, getCoverUrl, translateSubject } from "../../../shared/gutenberg";
-
-function ListRow({ book, onClick }: { book: GutenbergBook; onClick: () => void }) {
+function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
   const [imgError, setImgError] = useState(false);
   const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
-  // Do not use book.summaries — those are English Gutenberg auto-summaries
-  // AI summaries are loaded on the detail page or on demand
-  const summary: string | null = null;
 
   return (
     <div
@@ -156,21 +150,11 @@ function ListRow({ book, onClick }: { book: GutenbergBook; onClick: () => void }
           {book.title}
         </h3>
         <p className="text-xs text-muted-foreground mb-1.5">{author}</p>
-        {summary && (
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-            {summary}
+        {book.issued && (
+          <p className="text-xs text-muted-foreground">
+            {book.issued.substring(0, 4)}
           </p>
         )}
-      </div>
-
-      {/* Downloads */}
-      <div className="shrink-0 flex flex-col items-end justify-between">
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Download className="w-3 h-3" />
-          {book.download_count >= 1000
-            ? `${(book.download_count / 1000).toFixed(1)}k`
-            : book.download_count}
-        </div>
       </div>
     </div>
   );
@@ -184,7 +168,6 @@ function ListRowSkeleton() {
         <div className="skeleton h-4 w-3/4 rounded" />
         <div className="skeleton h-3 w-1/2 rounded" />
         <div className="skeleton h-3 w-full rounded" />
-        <div className="skeleton h-3 w-4/5 rounded" />
       </div>
     </div>
   );

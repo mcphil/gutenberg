@@ -1,0 +1,25 @@
+{
+  "query": "SELECT COUNT(*) as total FROM books; SELECT gutenbergId, title, authors, language, subjects FROM books LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute SELECT COUNT(*) as total FROM books; SELECT gutenbergId, title, authors, language, subjects FROM books LIMIT 3;",
+  "rows": [
+    {
+      "total": "2420"
+    },
+    {
+      "total": "gutenbergId\ttitle\tauthors\tlanguage\tsubjects"
+    },
+    {
+      "total": "417\tDr. Martin Luther's Deutsche Geistliche Lieder The Hymns of Martin Luther Set to Their Original Melodies, With an English Version\tLuther, Martin, 1483-1546; Allen, Nathan H. (Nathan Hale), 1848-1925 [Editor]; Bacon, Leonard Woolsey, 1830-1907 [Editor]\tde; en\tHymns, German; Lutheran Church -- Hymns"
+    },
+    {
+      "total": "607\tDie Augsburger Confession\tMelanchthon, Philipp, 1497-1560\tde; la\tLutheran Church -- Doctrines; Theology, Doctrinal"
+    },
+    {
+      "total": "2054\tIphigenie auf Tauris\tGoethe, Johann Wolfgang von, 1749-1832\tde\tIphigenia (Mythological character) -- Drama"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\n2420\ngutenbergId\ttitle\tauthors\tlanguage\tsubjects\n417\tDr. Martin Luther's Deutsche Geistliche Lieder The Hymns of Martin Luther Set to Their Original Melodies, With an English Version\tLuther, Martin, 1483-1546; Allen, Nathan H. (Nathan Hale), 1848-1925 [Editor]; Bacon, Leonard Woolsey, 1830-1907 [Editor]\tde; en\tHymns, German; Lutheran Church -- Hymns\n607\tDie Augsburger Confession\tMelanchthon, Philipp, 1497-1560\tde; la\tLutheran Church -- Doctrines; Theology, Doctrinal\n2054\tIphigenie auf Tauris\tGoethe, Johann Wolfgang von, 1749-1832\tde\tIphigenia (Mythological character) -- Drama\n",
+  "stderr": "",
+  "execution_time_ms": 59
+}

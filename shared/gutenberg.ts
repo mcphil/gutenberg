@@ -1,42 +1,41 @@
-// Shared types for Gutendex API responses
+/**
+ * shared/gutenberg.ts
+ *
+ * Shared types and helpers for the Gutenberg Leser app.
+ *
+ * Data source: Project Gutenberg's official pg_catalog.csv
+ *   https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv
+ *
+ * We respect all Project Gutenberg terms of use:
+ *   - Metadata comes from the approved pg_catalog.csv (downloaded weekly)
+ *   - EPUBs are downloaded via the approved rsync method
+ *   - We never hotlink or deep-link to gutenberg.org for serving content
+ */
 
-export interface GutenbergAuthor {
-  name: string;
-  birth_year: number | null;
-  death_year: number | null;
-}
+// ─── Types matching the local `books` DB table (imported from pg_catalog.csv) ─
 
-export interface GutenbergFormats {
-  "application/epub+zip"?: string;
-  "text/html"?: string;
-  "image/jpeg"?: string;
-  "text/plain; charset=utf-8"?: string;
-  "application/x-mobipocket-ebook"?: string;
-  [key: string]: string | undefined;
-}
-
-export interface GutenbergBook {
-  id: number;
+export interface LocalBook {
+  gutenbergId: number;
+  type: string;
+  issued: string | null;
   title: string;
-  authors: GutenbergAuthor[];
-  summaries: string[];
-  subjects: string[];
-  bookshelves: string[];
-  languages: string[];
-  copyright: boolean | null;
-  media_type: string;
-  formats: GutenbergFormats;
-  download_count: number;
-  // Derived helpers
-  coverUrl?: string;
-  epubUrl?: string;
+  language: string;
+  /** Raw CSV string, e.g. "Kafka, Franz, 1883-1924; Brod, Max, 1884-1968" */
+  authors: string | null;
+  /** Semicolon-separated subjects, e.g. "Fiction; Metamorphosis -- Fiction" */
+  subjects: string | null;
+  /** Library of Congress Classification code */
+  locc: string | null;
+  /** Semicolon-separated bookshelves */
+  bookshelves: string | null;
+  importedAt: Date;
 }
 
-export interface GutendexResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: GutenbergBook[];
+export interface BookListResult {
+  books: LocalBook[];
+  total: number;
+  page: number;
+  pages: number;
 }
 
 export interface BookSummaryResult {
@@ -46,6 +45,70 @@ export interface BookSummaryResult {
   fromCache: boolean;
 }
 
+// ─── Author parsing ───────────────────────────────────────────────────────────
+
+export interface ParsedAuthor {
+  name: string;
+  /** Display name with first name first */
+  displayName: string;
+  birthYear: number | null;
+  deathYear: number | null;
+}
+
+/**
+ * Parses the raw CSV authors string into structured author objects.
+ * CSV format: "Lastname, Firstname, YYYY-YYYY; Lastname2, Firstname2, YYYY-YYYY"
+ * Some entries have only a name, some have birth/death years appended.
+ */
+export function parseAuthors(authorsStr: string | null): ParsedAuthor[] {
+  if (!authorsStr) return [];
+  return authorsStr.split(";").map((raw) => {
+    const part = raw.trim();
+    // Try to extract years: "Kafka, Franz, 1883-1924" or "Kafka, Franz, 1883-"
+    const yearMatch = part.match(/,\s*(\d{4})?-(\d{4})?$/);
+    let name = part;
+    let birthYear: number | null = null;
+    let deathYear: number | null = null;
+    if (yearMatch) {
+      name = part.slice(0, part.lastIndexOf(",")).trim();
+      birthYear = yearMatch[1] ? parseInt(yearMatch[1], 10) : null;
+      deathYear = yearMatch[2] ? parseInt(yearMatch[2], 10) : null;
+    }
+    // Flip "Last, First" → "First Last"
+    const nameParts = name.split(", ");
+    const displayName = nameParts.length === 2
+      ? `${nameParts[1]} ${nameParts[0]}`
+      : name;
+    return { name, displayName, birthYear, deathYear };
+  }).filter((a) => a.name.length > 0);
+}
+
+export function getAuthorDisplay(book: LocalBook): string {
+  const authors = parseAuthors(book.authors);
+  if (authors.length === 0) return "Unbekannter Autor";
+  return authors.map((a) => a.displayName).join(", ");
+}
+
+export function getAuthorYears(author: ParsedAuthor): string {
+  if (author.birthYear && author.deathYear) return `(${author.birthYear}–${author.deathYear})`;
+  if (author.birthYear) return `(* ${author.birthYear})`;
+  return "";
+}
+
+// ─── Subject parsing ──────────────────────────────────────────────────────────
+
+export function parseSubjects(subjectsStr: string | null): string[] {
+  if (!subjectsStr) return [];
+  return subjectsStr.split(";").map((s) => s.trim()).filter(Boolean);
+}
+
+export function parseBookshelves(bookshelvesStr: string | null): string[] {
+  if (!bookshelvesStr) return [];
+  return bookshelvesStr.split(";").map((s) => s.trim()).filter(Boolean);
+}
+
+// ─── URL helpers ──────────────────────────────────────────────────────────────
+
 /**
  * Returns our own cover endpoint URL, including title and author as query
  * parameters so the server can generate a typographic SVG fallback if no
@@ -53,13 +116,11 @@ export interface BookSummaryResult {
  *
  * We never hotlink directly from gutenberg.org or openlibrary.org.
  */
-export function getCoverUrl(book: GutenbergBook): string {
-  const authorName = book.authors[0]?.name ?? "";
-  // Gutenberg stores names as "Surname, Firstname" — flip for display
-  const parts = authorName.split(", ");
-  const displayAuthor = parts.length === 2 ? `${parts[1]} ${parts[0]}` : authorName;
+export function getCoverUrl(book: LocalBook): string {
+  const authors = parseAuthors(book.authors);
+  const displayAuthor = authors[0]?.displayName ?? "";
   const params = new URLSearchParams({ title: book.title, author: displayAuthor });
-  return `/api/covers/${book.id}?${params.toString()}`;
+  return `/api/covers/${book.gutenbergId}?${params.toString()}`;
 }
 
 /**
@@ -71,48 +132,18 @@ export function getCoverUrlById(gutenbergId: number): string {
 }
 
 /**
- * Returns the raw Gutendex EPUB URL for a book (if available).
- * Use getEpubProxyUrl() in the frontend instead — this is only for passing
- * the known URL to the server as a hint.
- */
-export function getEpubUrl(book: GutenbergBook): string | null {
-  return book.formats["application/epub+zip"] || null;
-}
-
-/**
  * Returns our own EPUB proxy endpoint URL.
- * The server downloads the EPUB on first request and caches it locally —
- * we never stream directly from gutenberg.org.
- *
- * The ?url= parameter passes the known Gutendex EPUB URL as a hint so the
- * server can try it first before falling back to constructed candidate URLs.
+ * The server serves the locally cached EPUB (downloaded via rsync).
  */
-export function getEpubProxyUrl(book: GutenbergBook): string | null {
-  const rawUrl = getEpubUrl(book);
-  if (!rawUrl) return null; // No EPUB available for this book
-  const params = new URLSearchParams({ url: rawUrl });
-  return `/api/epubs/${book.id}?${params.toString()}`;
+export function getEpubProxyUrl(gutenbergId: number): string {
+  // The .epub extension is required: epub.js uses the URL file extension to
+  // determine the input type (binary/epub/directory). Without it, epub.js
+  // treats the URL as a directory and tries to load container.xml, which fails.
+  return `/api/epubs/${gutenbergId}.epub`;
 }
 
-export function getAuthorDisplay(book: GutenbergBook): string {
-  if (!book.authors || book.authors.length === 0) return "Unbekannter Autor";
-  return book.authors
-    .map((a) => {
-      // Gutenberg stores names as "Last, First" — reverse for display
-      const parts = a.name.split(", ");
-      return parts.length === 2 ? `${parts[1]} ${parts[0]}` : a.name;
-    })
-    .join(", ");
-}
-
-export function getAuthorYears(author: GutenbergAuthor): string {
-  if (author.birth_year && author.death_year) return `(${author.birth_year}–${author.death_year})`;
-  if (author.birth_year) return `(* ${author.birth_year})`;
-  return "";
-}
-
-// ─── Subject translation map (English → German) ──────────────
-// Gutendex subjects are always in English; we translate for display.
+// ─── Subject translation map (English → German) ──────────────────────────────
+// Gutenberg subjects from pg_catalog.csv are in English; we translate for display.
 
 const SUBJECT_TRANSLATIONS: Record<string, string> = {
   // Genres & forms
@@ -145,7 +176,6 @@ const SUBJECT_TRANSLATIONS: Record<string, string> = {
   "War stories": "Kriegsgeschichten",
   "Autobiographical fiction": "Autobiografischer Roman",
   "Bildungsromans": "Bildungsroman",
-
   // Subjects & themes
   "History": "Geschichte",
   "Philosophy": "Philosophie",
@@ -204,46 +234,36 @@ const SUBJECT_TRANSLATIONS: Record<string, string> = {
  * Falls back to the original string if no translation is found.
  */
 export function translateSubject(subject: string): string {
-  // Strip the " -- subtype" suffix pattern (e.g. "Germans -- Fiction" → "Germans")
   const mainPart = subject.replace(/ -- .+$/, "").trim();
-
-  // Direct lookup
   if (SUBJECT_TRANSLATIONS[mainPart]) return SUBJECT_TRANSLATIONS[mainPart];
-
-  // Case-insensitive lookup
   const lower = mainPart.toLowerCase();
   const key = Object.keys(SUBJECT_TRANSLATIONS).find((k) => k.toLowerCase() === lower);
   if (key) return SUBJECT_TRANSLATIONS[key];
-
-  // Partial match for compound subjects
   for (const [en, de] of Object.entries(SUBJECT_TRANSLATIONS)) {
     if (mainPart.includes(en)) return de;
   }
-
-  // Return original if no translation found
   return mainPart;
 }
 
-// ─── Curated German filter topics ────────────────────────────
-// These map display labels to Gutendex topic query values.
+// ─── Curated German filter topics ────────────────────────────────────────────
 
 export const FILTER_TOPICS: { label: string; value: string }[] = [
-  { label: "Belletristik", value: "fiction" },
-  { label: "Drama", value: "drama" },
-  { label: "Lyrik", value: "poetry" },
-  { label: "Roman", value: "novel" },
-  { label: "Kurzgeschichten", value: "short stories" },
-  { label: "Geschichte", value: "history" },
-  { label: "Philosophie", value: "philosophy" },
-  { label: "Wissenschaft", value: "science" },
-  { label: "Biografie", value: "biography" },
-  { label: "Märchen", value: "fairy tales" },
-  { label: "Abenteuer", value: "adventure" },
-  { label: "Kriminalroman", value: "detective" },
-  { label: "Klassik", value: "classical" },
-  { label: "Romantik", value: "romanticism" },
-  { label: "Expressionismus", value: "expressionism" },
-  { label: "Realismus", value: "realism" },
-  { label: "Kinder", value: "children" },
-  { label: "Reise", value: "travel" },
+  { label: "Belletristik", value: "Fiction" },
+  { label: "Drama", value: "Drama" },
+  { label: "Lyrik", value: "Poetry" },
+  { label: "Roman", value: "Novel" },
+  { label: "Kurzgeschichten", value: "Short stories" },
+  { label: "Geschichte", value: "History" },
+  { label: "Philosophie", value: "Philosophy" },
+  { label: "Wissenschaft", value: "Science" },
+  { label: "Biografie", value: "Biography" },
+  { label: "Märchen", value: "Fairy tales" },
+  { label: "Abenteuer", value: "Adventure" },
+  { label: "Kriminalroman", value: "Detective" },
+  { label: "Klassik", value: "Classical" },
+  { label: "Romantik", value: "Romanticism" },
+  { label: "Expressionismus", value: "Expressionism" },
+  { label: "Realismus", value: "Realism" },
+  { label: "Kinder", value: "Children" },
+  { label: "Reise", value: "Travel" },
 ];

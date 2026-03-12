@@ -2,14 +2,14 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import {
   BookOpen, ChevronUp, ChevronDown, X, Sparkles, Loader2,
-  Download, Tag, ArrowLeft
+  ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import {
-  getAuthorDisplay, getCoverUrl, getEpubUrl, translateSubject,
-  type GutenbergBook
+  getAuthorDisplay, getCoverUrl, parseSubjects, translateSubject,
+  type LocalBook
 } from "../../../shared/gutenberg";
 
 interface BrowseModeProps {
@@ -22,10 +22,9 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
   const [, navigate] = useLocation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [page, setPage] = useState(1);
-  const [books, setBooks] = useState<GutenbergBook[]>([]);
+  const [books, setBooks] = useState<LocalBook[]>([]);
   const [cardState, setCardState] = useState<CardState>("active");
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [direction, setDirection] = useState<"up" | "down">("up");
 
   // Touch tracking
   const touchStartY = useRef<number | null>(null);
@@ -38,10 +37,10 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
 
   // Accumulate books across pages
   useEffect(() => {
-    if (data?.results) {
+    if (data?.books) {
       setBooks((prev) => {
-        const existingIds = new Set(prev.map((b) => b.id));
-        const newBooks = data.results.filter((b) => !existingIds.has(b.id));
+        const existingIds = new Set(prev.map((b) => b.gutenbergId));
+        const newBooks = data.books.filter((b) => !existingIds.has(b.gutenbergId));
         return [...prev, ...newBooks];
       });
     }
@@ -49,10 +48,10 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
 
   // Pre-fetch next page when near end
   useEffect(() => {
-    if (books.length > 0 && currentIndex >= books.length - 5 && data?.next) {
+    if (books.length > 0 && currentIndex >= books.length - 5 && data?.page && data?.pages && data.page < data.pages) {
       setPage((p) => p + 1);
     }
-  }, [currentIndex, books.length, data?.next]);
+  }, [currentIndex, books.length, data]);
 
   const goTo = useCallback(
     (dir: "up" | "down") => {
@@ -60,7 +59,6 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
       const nextIndex = dir === "up" ? currentIndex + 1 : currentIndex - 1;
       if (nextIndex < 0 || nextIndex >= books.length) return;
 
-      setDirection(dir);
       setIsTransitioning(true);
       setCardState(dir === "up" ? "exiting-to-top" : "exiting-to-bottom");
 
@@ -144,7 +142,7 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
           <span className="hidden sm:inline">Zurück</span>
         </Button>
         <div className="text-xs text-muted-foreground">
-          {books.length > 0 ? `${currentIndex + 1} / ${data?.count ?? books.length}` : ""}
+          {books.length > 0 ? `${currentIndex + 1} / ${data?.total ?? books.length}` : ""}
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="w-4 h-4" />
@@ -156,8 +154,8 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
         <BrowseCard
           book={currentBook}
           state={cardState}
-          onRead={() => navigate(`/read/${currentBook.id}`)}
-          onDetail={() => navigate(`/book/${currentBook.id}`)}
+          onRead={() => navigate(`/read/${currentBook.gutenbergId}`)}
+          onDetail={() => navigate(`/book/${currentBook.gutenbergId}`)}
         />
       ) : (
         <div className="flex items-center justify-center h-full">
@@ -206,7 +204,7 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
         })}
       </div>
 
-      {/* Swipe hint — shown briefly */}
+      {/* Swipe hint */}
       <SwipeHint />
     </div>
   );
@@ -215,7 +213,7 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
 // ─── Browse Card ─────────────────────────────────────────────
 
 interface BrowseCardProps {
-  book: GutenbergBook;
+  book: LocalBook;
   state: CardState;
   onRead: () => void;
   onDetail: () => void;
@@ -223,35 +221,30 @@ interface BrowseCardProps {
 
 function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
   const [imgError, setImgError] = useState(false);
-  const [summaryRequested, setSummaryRequested] = useState(false);
   const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
-  const epubUrl = getEpubUrl(book);
+  const subjects = parseSubjects(book.subjects);
 
-  const { data: cachedSummary } = trpc.summaries.getCached.useQuery({ gutenbergId: book.id });
+  const { data: cachedSummary } = trpc.summaries.getCached.useQuery({ gutenbergId: book.gutenbergId });
   const generateSummary = trpc.summaries.generate.useMutation();
 
-  // Only use AI-generated or cached summaries — never the English Gutenberg fallback
   const shortSummary =
     generateSummary.data?.shortSummary ||
     cachedSummary?.shortSummary ||
     null;
 
   const handleGetSummary = () => {
-    setSummaryRequested(true);
     generateSummary.mutate({
-      gutenbergId: book.id,
+      gutenbergId: book.gutenbergId,
       title: book.title,
-      authors: book.authors,
-      subjects: book.subjects,
-      existingSummary: book.summaries?.[0],
+      authorsRaw: book.authors ?? "",
+      subjectsRaw: book.subjects ?? "",
       type: "short",
     });
   };
 
   return (
     <div className={`browse-card ${state}`}>
-      {/* Full-height layout: cover + info */}
       <div className="flex flex-col h-full">
         {/* Cover — takes ~55% of height */}
         <div
@@ -276,11 +269,10 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
               </p>
             </div>
           )}
-          {/* Gradient overlay at bottom of cover */}
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent" />
         </div>
 
-        {/* Info panel — scrollable */}
+        {/* Info panel */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-16 pt-2 max-w-2xl mx-auto w-full">
           <h2
             className="text-xl sm:text-2xl font-semibold text-foreground leading-tight mb-1"
@@ -317,9 +309,9 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
           )}
 
           {/* Subjects */}
-          {book.subjects.length > 0 && (
+          {subjects.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mb-4">
-              {book.subjects.slice(0, 4).map((s) => (
+              {subjects.slice(0, 4).map((s) => (
                 <Badge key={s} variant="secondary" className="text-xs">
                   {translateSubject(s)}
                 </Badge>
@@ -327,22 +319,19 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
             </div>
           )}
 
-          {/* Stats */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground mb-5">
-            <span className="flex items-center gap-1">
-              <Download className="w-3.5 h-3.5" />
-              {book.download_count.toLocaleString("de-DE")} Downloads
-            </span>
-          </div>
+          {/* Year */}
+          {book.issued && (
+            <div className="text-xs text-muted-foreground mb-5">
+              {book.issued.substring(0, 4)}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3">
-            {epubUrl && (
-              <Button className="flex-1 gap-2" onClick={onRead}>
-                <BookOpen className="w-4 h-4" />
-                Lesen
-              </Button>
-            )}
+            <Button className="flex-1 gap-2" onClick={onRead}>
+              <BookOpen className="w-4 h-4" />
+              Lesen
+            </Button>
             <Button variant="outline" className="flex-1" onClick={onDetail}>
               Mehr Details
             </Button>

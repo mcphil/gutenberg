@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { BookOpen, Download, User } from "lucide-react";
+import { BookOpen, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { GutenbergBook } from "../../../shared/gutenberg";
-import { getAuthorDisplay, getCoverUrl, translateSubject } from "../../../shared/gutenberg";
+import type { LocalBook } from "../../../shared/gutenberg";
+import { getAuthorDisplay, getCoverUrl, parseSubjects, translateSubject } from "../../../shared/gutenberg";
 
 interface BookCardProps {
-  book: GutenbergBook;
+  book: LocalBook;
   shortSummary?: string;
   onClick?: () => void;
   compact?: boolean;
@@ -38,13 +38,7 @@ export function BookCard({ book, shortSummary, onClick, compact = false }: BookC
         ) : (
           <CoverFallback title={book.title} />
         )}
-        {/* Download badge */}
-        {!compact && (
-          <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
-            <Download className="w-3 h-3" />
-            {formatDownloads(book.download_count)}
-          </div>
-        )}
+        {/* Download counts not available in pg_catalog.csv */}
       </div>
 
       {/* Info */}
@@ -68,9 +62,9 @@ export function BookCard({ book, shortSummary, onClick, compact = false }: BookC
           </p>
         )}
 
-          {!compact && book.subjects.length > 0 && (
+          {!compact && parseSubjects(book.subjects).length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {book.subjects.slice(0, 2).map((s) => (
+            {parseSubjects(book.subjects).slice(0, 2).map((s) => (
               <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 h-4 truncate max-w-[120px]">
                 {translateSubject(s)}
               </Badge>

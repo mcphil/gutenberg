@@ -84,6 +84,7 @@ export async function downloadEpub(
       const res = await fetch(url, {
         headers: { "User-Agent": USER_AGENT },
         signal: AbortSignal.timeout(60_000), // EPUBs can be large — allow 60s
+        redirect: "follow",
       });
 
       if (!res.ok) continue;
