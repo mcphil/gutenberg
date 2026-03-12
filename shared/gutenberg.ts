@@ -57,14 +57,30 @@ export interface ParsedAuthor {
 
 /**
  * Parses the raw CSV authors string into structured author objects.
- * CSV format: "Lastname, Firstname, YYYY-YYYY; Lastname2, Firstname2, YYYY-YYYY"
- * Some entries have only a name, some have birth/death years appended.
+ *
+ * Gutenberg CSV format examples:
+ *   "Kafka, Franz, 1883-1924"
+ *   "Berger, Alfred von [Contributor]"
+ *   "Gomperz, Theodor [Translator]"
+ *   "Aristotele"
+ *
+ * We extract the optional [Role] annotation first, then strip birth/death
+ * years, then flip "Lastname, Firstname" → "Firstname Lastname", and finally
+ * re-attach the role so the display reads "Firstname Lastname [Role]".
  */
 export function parseAuthors(authorsStr: string | null): ParsedAuthor[] {
   if (!authorsStr) return [];
   return authorsStr.split(";").map((raw) => {
-    const part = raw.trim();
-    // Try to extract years: "Kafka, Franz, 1883-1924" or "Kafka, Franz, 1883-"
+    let part = raw.trim();
+
+    // 1. Extract optional [Role] annotation (e.g. "[Contributor]", "[Translator]")
+    const roleMatch = part.match(/(\s*\[[^\]]+\])$/);
+    const roleAnnotation = roleMatch ? roleMatch[1].trimStart() : "";
+    if (roleMatch) {
+      part = part.slice(0, part.length - roleMatch[1].length).trim();
+    }
+
+    // 2. Extract birth/death years: "Kafka, Franz, 1883-1924" or "Kafka, Franz, 1883-"
     const yearMatch = part.match(/,\s*(\d{4})?-(\d{4})?$/);
     let name = part;
     let birthYear: number | null = null;
@@ -74,11 +90,18 @@ export function parseAuthors(authorsStr: string | null): ParsedAuthor[] {
       birthYear = yearMatch[1] ? parseInt(yearMatch[1], 10) : null;
       deathYear = yearMatch[2] ? parseInt(yearMatch[2], 10) : null;
     }
-    // Flip "Last, First" → "First Last"
+
+    // 3. Flip "Lastname, Firstname" → "Firstname Lastname"
     const nameParts = name.split(", ");
-    const displayName = nameParts.length === 2
+    const flippedName = nameParts.length === 2
       ? `${nameParts[1]} ${nameParts[0]}`
       : name;
+
+    // 4. Re-attach role annotation after the name
+    const displayName = roleAnnotation
+      ? `${flippedName} ${roleAnnotation}`
+      : flippedName;
+
     return { name, displayName, birthYear, deathYear };
   }).filter((a) => a.name.length > 0);
 }

@@ -1,0 +1,15 @@
+{
+  "query": "SELECT gutenbergId, title, authors FROM books WHERE title LIKE '%Poetik%' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute SELECT gutenbergId, title, authors FROM books WHERE title LIKE '%Poetik%' LIMIT 5;",
+  "rows": [
+    {
+      "gutenbergId": "78140",
+      "title": "Aristoteles' Poetik",
+      "authors": "Aristotele; Berger, Alfred von [Contributor]; Gomperz, Theodor [Translator]"
+    }
+  ],
+  "messages": [],
+  "stdout": "gutenbergId\ttitle\tauthors\n78140\tAristoteles' Poetik\tAristotele; Berger, Alfred von [Contributor]; Gomperz, Theodor [Translator]\n",
+  "stderr": "",
+  "execution_time_ms": 154
+}

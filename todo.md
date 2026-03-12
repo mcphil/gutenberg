@@ -52,3 +52,6 @@
 - [x] Gutendex-Abhängigkeit komplett entfernt
 - [x] Cover on-demand über /api/covers/:id (SVG-Fallback für Bücher ohne Bild)
 - [x] EPUB-Reader Bug "Error loading book" behoben (URL-Extension .epub für epub.js)
+
+## UI-Verbesserungen
+- [x] Autoren-Anzeige: "Nachname, Vorname [Rolle]" → "Vorname Nachname [Rolle]" — parseAuthors() extrahiert [Rolle] vor dem Umdrehen, hängt sie danach wieder an
