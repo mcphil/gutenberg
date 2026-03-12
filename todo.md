@@ -66,3 +66,4 @@
 - [x] summaries.generate Mutation aus Router entfernt (nur noch getCached)
 - [x] Zusammenfassungen werden nur noch angezeigt wenn vorhanden, kein Trigger mehr für User
 - [x] 40 Tests grün (1 neuer Test für summaries.getCached)
+- [x] Hover-Overlay auf Buchkarten: Zeigt Kurzzusammenfassung beim Hovern (Grid: Overlay auf Cover, Liste: Fade-in unter Metadaten)

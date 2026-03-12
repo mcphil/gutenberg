@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { BookOpen, User } from "lucide-react";
+import { BookOpen, User, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { trpc } from "@/lib/trpc";
 import type { LocalBook } from "../../../shared/gutenberg";
 import { getAuthorDisplay, getCoverUrl, parseSubjects, translateSubject } from "../../../shared/gutenberg";
 
@@ -11,19 +12,31 @@ interface BookCardProps {
   compact?: boolean;
 }
 
-export function BookCard({ book, shortSummary, onClick, compact = false }: BookCardProps) {
+export function BookCard({ book, shortSummary: propSummary, onClick, compact = false }: BookCardProps) {
   const [imgError, setImgError] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
+  const subjects = parseSubjects(book.subjects);
+
+  // Fetch summary on hover (enabled only when hovered, cached after first load)
+  const { data: cachedSummary } = trpc.summaries.getCached.useQuery(
+    { gutenbergId: book.gutenbergId },
+    { enabled: hovered, staleTime: Infinity }
+  );
+
+  const shortSummary = propSummary ?? cachedSummary?.shortSummary ?? null;
 
   return (
     <div
-      className="book-card cursor-pointer group"
+      className="book-card cursor-pointer group relative"
       onClick={onClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick?.()}
       aria-label={`${book.title} von ${author}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Cover */}
       <div className="relative overflow-hidden bg-muted" style={{ aspectRatio: "2/3" }}>
@@ -38,10 +51,54 @@ export function BookCard({ book, shortSummary, onClick, compact = false }: BookC
         ) : (
           <CoverFallback title={book.title} />
         )}
-        {/* Download counts not available in pg_catalog.csv */}
+
+        {/* Hover overlay — summary panel */}
+        <div
+          className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-200 ${
+            hovered ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+          style={{
+            background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.75) 50%, rgba(0,0,0,0.2) 100%)",
+          }}
+        >
+          <div className="p-2.5 pb-3">
+            <p
+              className="text-white font-semibold text-xs leading-tight mb-0.5 line-clamp-2"
+              style={{ fontFamily: "Lora, Georgia, serif" }}
+            >
+              {book.title}
+            </p>
+            <p className="text-white/60 text-xs mb-2 line-clamp-1">{author}</p>
+
+            {shortSummary ? (
+              <div className="flex items-start gap-1">
+                <Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+                <p className="text-white/85 text-xs leading-relaxed line-clamp-4">
+                  {shortSummary}
+                </p>
+              </div>
+            ) : (
+              <p className="text-white/40 text-xs italic">Keine Zusammenfassung</p>
+            )}
+
+            {subjects.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {subjects.slice(0, 2).map((s) => (
+                  <Badge
+                    key={s}
+                    variant="secondary"
+                    className="text-xs px-1.5 py-0 h-4 bg-white/20 text-white border-0 truncate max-w-[100px]"
+                  >
+                    {translateSubject(s)}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Info */}
+      {/* Info below cover (non-hover state) */}
       <div className={compact ? "p-2" : "p-3"}>
         <h3
           className={`font-semibold text-card-foreground leading-tight mb-1 line-clamp-2 ${
@@ -53,18 +110,12 @@ export function BookCard({ book, shortSummary, onClick, compact = false }: BookC
         </h3>
         <div className="flex items-center gap-1 text-muted-foreground mb-2">
           <User className="w-3 h-3 shrink-0" />
-          <p className={`line-clamp-1 ${compact ? "text-xs" : "text-xs"}`}>{author}</p>
+          <p className="line-clamp-1 text-xs">{author}</p>
         </div>
 
-        {!compact && shortSummary && (
-          <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-            {shortSummary}
-          </p>
-        )}
-
-          {!compact && parseSubjects(book.subjects).length > 0 && (
+        {!compact && subjects.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
-            {parseSubjects(book.subjects).slice(0, 2).map((s) => (
+            {subjects.slice(0, 2).map((s) => (
               <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 h-4 truncate max-w-[120px]">
                 {translateSubject(s)}
               </Badge>
@@ -91,11 +142,6 @@ function CoverFallback({ title }: { title: string }) {
       </p>
     </div>
   );
-}
-
-function formatDownloads(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return String(n);
 }
 
 // ─── Skeleton ────────────────────────────────────────────────

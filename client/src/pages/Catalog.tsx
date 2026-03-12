@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { BookCard, BookCardSkeleton } from "@/components/BookCard";
 import { FilterPanel } from "@/components/FilterPanel";
-import { ChevronLeft, ChevronRight, BookOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAuthorDisplay, getCoverUrl, type LocalBook } from "../../../shared/gutenberg";
 
@@ -113,16 +113,26 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
 
 function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
   const [imgError, setImgError] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
 
+  const { data: cachedSummary } = trpc.summaries.getCached.useQuery(
+    { gutenbergId: book.gutenbergId },
+    { enabled: hovered, staleTime: Infinity }
+  );
+
+  const shortSummary = cachedSummary?.shortSummary ?? null;
+
   return (
     <div
-      className="book-card flex gap-3 p-3 cursor-pointer"
+      className="book-card flex gap-3 p-3 cursor-pointer group transition-colors duration-150"
       onClick={onClick}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Mini cover */}
       <div className="shrink-0 w-14 rounded overflow-hidden bg-muted" style={{ aspectRatio: "2/3" }}>
@@ -130,7 +140,7 @@ function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
           <img
             src={coverUrl}
             alt={`Cover: ${book.title}`}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
             onError={() => setImgError(true)}
           />
@@ -151,10 +161,24 @@ function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
         </h3>
         <p className="text-xs text-muted-foreground mb-1.5">{author}</p>
         {book.issued && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mb-1.5">
             {book.issued.substring(0, 4)}
           </p>
         )}
+
+        {/* Summary — fades in on hover */}
+        <div
+          className={`overflow-hidden transition-all duration-200 ${
+            hovered && shortSummary ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="flex items-start gap-1 pt-1">
+            <Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+            <p className="text-xs text-foreground/75 leading-relaxed line-clamp-3">
+              {shortSummary}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
