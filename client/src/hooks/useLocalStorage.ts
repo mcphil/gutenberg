@@ -115,7 +115,8 @@ export interface ReaderPreferences {
   lineHeight: number;     // 1.4–2.0
   fontFamily: "serif" | "sans";
   theme: "light" | "sepia" | "dark";
-  maxWidth: number;       // 600–900px
+  maxWidth: number;       // 600–900px (only used in paginated mode)
+  readingMode: "scroll" | "paginated"; // scroll = continuous Apple-Books-style, paginated = page-flip
 }
 
 const DEFAULT_PREFS: ReaderPreferences = {
@@ -124,6 +125,7 @@ const DEFAULT_PREFS: ReaderPreferences = {
   fontFamily: "serif",
   theme: "light",
   maxWidth: 720,
+  readingMode: "scroll",
 };
 
 export function useReaderPreferences() {

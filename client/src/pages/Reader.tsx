@@ -4,8 +4,8 @@ import { ReactReader, ReactReaderStyle } from "react-reader";
 import type { Contents, Rendition } from "epubjs";
 import {
   ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight,
-  Maximize2, Minimize2, Minus, Plus, Settings, Sun, Coffee, Moon,
-  Type
+  Maximize2, Minimize2, Minus, Plus, Settings,
+  Type, AlignJustify, BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -28,6 +28,9 @@ const THEME_STYLES: Record<ReaderTheme, { bg: string; text: string; label: strin
   dark:  { bg: "#1C1A18", text: "#E8E0D4", label: "Dunkel" },
 };
 
+// Optimal reading width: 60–70 characters per line ≈ 640–680px at 17px serif
+const SCROLL_MAX_WIDTH = 660;
+
 export default function Reader({ bookId }: ReaderProps) {
   const [, navigate] = useLocation();
   const { prefs, updatePref } = useReaderPreferences();
@@ -35,7 +38,6 @@ export default function Reader({ bookId }: ReaderProps) {
   const { addBookmark, getBookmarksForBook, removeBookmark } = useBookmarks();
 
   const [location, setLocation] = useState<string | number>(0);
-  const [totalPages, setTotalPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -60,45 +62,50 @@ export default function Reader({ bookId }: ReaderProps) {
   useEffect(() => {
     if (book) {
       setBookTitle(book.title);
-      // Always use our own cover endpoint — never store a gutenberg.org URL
       setBookCover(getCoverUrlById(bookId));
     }
   }, [book, bookId]);
 
-  // Apply reader theme and font settings to rendition
+  // Build the CSS applied inside the EPUB iframe
+  const getEpubStyles = useCallback(() => {
+    const theme = THEME_STYLES[prefs.theme];
+    const fontFamily =
+      prefs.fontFamily === "serif"
+        ? "'Merriweather', 'Georgia', serif"
+        : "'Inter', 'system-ui', sans-serif";
+    const isScroll = prefs.readingMode === "scroll";
+    const maxW = isScroll ? SCROLL_MAX_WIDTH : prefs.maxWidth;
+
+    return {
+      body: {
+        background: theme.bg,
+        color: theme.text,
+        "font-family": fontFamily,
+        "font-size": `${prefs.fontSize}px !important`,
+        "line-height": `${prefs.lineHeight} !important`,
+        "max-width": `${maxW}px`,
+        margin: "0 auto",
+        padding: isScroll ? "3rem 2rem 6rem" : "2rem 1.5rem",
+      },
+      p: {
+        "font-size": `${prefs.fontSize}px !important`,
+        "line-height": `${prefs.lineHeight} !important`,
+        "margin-bottom": "1em",
+        "text-align": "justify",
+        hyphens: "auto",
+      },
+      h1: { "font-size": `${prefs.fontSize * 1.6}px !important`, "margin-bottom": "0.75em", "font-family": "'Lora', 'Georgia', serif" },
+      h2: { "font-size": `${prefs.fontSize * 1.35}px !important`, "margin-bottom": "0.6em", "font-family": "'Lora', 'Georgia', serif" },
+      h3: { "font-size": `${prefs.fontSize * 1.15}px !important`, "margin-bottom": "0.5em" },
+      a: { color: prefs.theme === "dark" ? "#C8A97E" : "#7B4F2E" },
+    };
+  }, [prefs]);
+
   const applyStyles = useCallback(
     (rendition: Rendition) => {
-      const theme = THEME_STYLES[prefs.theme];
-      const fontFamily =
-        prefs.fontFamily === "serif"
-          ? "'Merriweather', 'Georgia', serif"
-          : "'Inter', 'system-ui', sans-serif";
-
-      rendition.themes.default({
-        body: {
-          background: theme.bg,
-          color: theme.text,
-          "font-family": fontFamily,
-          "font-size": `${prefs.fontSize}px !important`,
-          "line-height": `${prefs.lineHeight} !important`,
-          "max-width": `${prefs.maxWidth}px`,
-          margin: "0 auto",
-          padding: "2rem 1.5rem",
-        },
-        p: {
-          "font-size": `${prefs.fontSize}px !important`,
-          "line-height": `${prefs.lineHeight} !important`,
-          "margin-bottom": "1em",
-          "text-align": "justify",
-          hyphens: "auto",
-        },
-        h1: { "font-size": `${prefs.fontSize * 1.6}px !important`, "margin-bottom": "0.75em", "font-family": "'Lora', 'Georgia', serif" },
-        h2: { "font-size": `${prefs.fontSize * 1.35}px !important`, "margin-bottom": "0.6em", "font-family": "'Lora', 'Georgia', serif" },
-        h3: { "font-size": `${prefs.fontSize * 1.15}px !important`, "margin-bottom": "0.5em" },
-        a: { color: prefs.theme === "dark" ? "#C8A97E" : "#7B4F2E" },
-      });
+      rendition.themes.default(getEpubStyles());
     },
-    [prefs]
+    [getEpubStyles]
   );
 
   const handleRendition = useCallback(
@@ -106,13 +113,8 @@ export default function Reader({ bookId }: ReaderProps) {
       renditionRef.current = rendition;
       applyStyles(rendition);
 
-      // epub.js needs locations to be generated before start.percentage is non-zero.
-      // We generate them once the book is ready (1 char per "location" is fast enough
-      // for typical Gutenberg EPUBs and keeps the percentage accurate).
       rendition.book.ready.then(() => {
-        rendition.book.locations.generate(1024).catch(() => {
-          // Non-fatal: percentage will stay 0 if generation fails (e.g. DRM)
-        });
+        rendition.book.locations.generate(1024).catch(() => {});
       }).catch(() => {});
 
       rendition.on("relocated", (location: { start: { cfi: string; percentage: number }; atEnd: boolean }) => {
@@ -120,11 +122,7 @@ export default function Reader({ bookId }: ReaderProps) {
         const pct = location.start.percentage ?? 0;
         locationRef.current = cfi;
         setCurrentPage(Math.round(pct * 100));
-
-        // Save progress
         saveProgress(bookId, cfi, pct, bookTitle, bookCover);
-
-        // Check if current location is bookmarked
         const bms = getBookmarksForBook(bookId);
         setIsBookmarked(bms.some((b) => b.cfi === cfi));
       });
@@ -168,9 +166,18 @@ export default function Reader({ bookId }: ReaderProps) {
     }
   }, []);
 
-  // Use our own EPUB proxy endpoint — never stream directly from gutenberg.org
+  const handleToggleMode = useCallback(() => {
+    updatePref("readingMode", prefs.readingMode === "scroll" ? "paginated" : "scroll");
+    // Reset location to current CFI so the new mode opens at the same position
+    const cfi = locationRef.current;
+    if (cfi) {
+      setTimeout(() => setLocation(cfi), 50);
+    }
+  }, [prefs.readingMode, updatePref]);
+
   const epubUrl = getEpubProxyUrl(bookId);
   const theme = THEME_STYLES[prefs.theme];
+  const isScroll = prefs.readingMode === "scroll";
 
   if (!epubUrl && book) {
     return (
@@ -207,14 +214,16 @@ export default function Reader({ bookId }: ReaderProps) {
       ...ReactReaderStyle.tocButton,
       color: theme.text,
     },
+    // Hide prev/next arrows in scroll mode — navigation is via scrolling
     arrow: {
       ...ReactReaderStyle.arrow,
-      color: theme.text,
-    },
+      color: isScroll ? "transparent" : theme.text,
+      pointerEvents: isScroll ? "none" : "auto",
+    } as React.CSSProperties,
     arrowHover: {
       ...ReactReaderStyle.arrowHover,
-      color: prefs.theme === "dark" ? "#C8A97E" : "#7B4F2E",
-    },
+      color: isScroll ? "transparent" : (prefs.theme === "dark" ? "#C8A97E" : "#7B4F2E"),
+    } as React.CSSProperties,
   };
 
   return (
@@ -255,6 +264,19 @@ export default function Reader({ bookId }: ReaderProps) {
           {currentPage}%
         </span>
 
+        {/* Mode toggle: Scroll ↔ Paginated */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          style={{ color: theme.text }}
+          onClick={handleToggleMode}
+          title={isScroll ? "Zu Blätter-Modus wechseln" : "Zu Scroll-Modus wechseln"}
+          aria-label={isScroll ? "Zu Blätter-Modus wechseln" : "Zu Scroll-Modus wechseln"}
+        >
+          {isScroll ? <BookOpen className="w-4 h-4" /> : <AlignJustify className="w-4 h-4" />}
+        </Button>
+
         {/* Bookmark */}
         <Button
           variant="ghost"
@@ -277,7 +299,7 @@ export default function Reader({ bookId }: ReaderProps) {
               style={{ color: theme.text }}
               aria-label="Leseeinstellungen"
             >
-              <Settings className="w-4 h-4" />
+              <Type className="w-4 h-4" />
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-72 p-4" align="end">
@@ -301,7 +323,7 @@ export default function Reader({ bookId }: ReaderProps) {
       {/* Progress bar */}
       <div className="h-0.5 shrink-0" style={{ background: prefs.theme === "dark" ? "#3A3630" : "#E0D8CC" }}>
         <div
-          className="h-full transition-all duration-300"
+          className="h-full transition-all duration-500"
           style={{
             width: `${currentPage}%`,
             background: prefs.theme === "dark" ? "#C8A97E" : "#7B4F2E",
@@ -313,14 +335,15 @@ export default function Reader({ bookId }: ReaderProps) {
       <div className="flex-1 min-h-0">
         {epubUrl && (
           <ReactReader
+            key={prefs.readingMode}  // force remount when mode changes
             url={epubUrl}
             location={location}
             locationChanged={handleLocationChange}
             getRendition={handleRendition}
             readerStyles={readerStyle}
             epubOptions={{
-              flow: "paginated",
-              manager: "default",
+              flow: isScroll ? "scrolled-doc" : "paginated",
+              manager: isScroll ? "continuous" : "default",
             }}
           />
         )}
@@ -337,6 +360,8 @@ interface ReaderSettingsProps {
 }
 
 function ReaderSettings({ prefs, updatePref }: ReaderSettingsProps) {
+  const isScroll = prefs.readingMode === "scroll";
+
   return (
     <div className="space-y-5">
       <h3 className="font-semibold text-sm">Leseeinstellungen</h3>
@@ -442,25 +467,34 @@ function ReaderSettings({ prefs, updatePref }: ReaderSettingsProps) {
         </div>
       </div>
 
-      {/* Max width */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs text-muted-foreground font-medium">Textbreite</label>
-          <span className="text-xs font-mono">{prefs.maxWidth}px</span>
+      {/* Max width — only relevant in paginated mode */}
+      {!isScroll && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs text-muted-foreground font-medium">Textbreite</label>
+            <span className="text-xs font-mono">{prefs.maxWidth}px</span>
+          </div>
+          <Slider
+            value={[prefs.maxWidth]}
+            min={500}
+            max={900}
+            step={20}
+            className="w-full"
+            onValueChange={([v]) => updatePref("maxWidth", v)}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+            <span>Schmal</span>
+            <span>Breit</span>
+          </div>
         </div>
-        <Slider
-          value={[prefs.maxWidth]}
-          min={500}
-          max={900}
-          step={20}
-          className="w-full"
-          onValueChange={([v]) => updatePref("maxWidth", v)}
-        />
-        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>Schmal</span>
-          <span>Breit</span>
-        </div>
-      </div>
+      )}
+
+      {/* Scroll mode info */}
+      {isScroll && (
+        <p className="text-xs text-muted-foreground border border-border rounded p-2 leading-relaxed">
+          Scroll-Modus: optimale Lesebreite (660 px) — einspaltig auf allen Geräten.
+        </p>
+      )}
     </div>
   );
 }
