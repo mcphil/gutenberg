@@ -125,7 +125,7 @@ const DEFAULT_PREFS: ReaderPreferences = {
   fontFamily: "serif",
   theme: "light",
   maxWidth: 720,
-  readingMode: "scroll",
+  readingMode: "paginated",
 };
 
 export function useReaderPreferences() {
