@@ -22,6 +22,7 @@ export const bookSummaries = mysqlTable("book_summaries", {
   shortSummary: text("shortSummary"),
   longSummary: text("longSummary"),
   coverCached: boolean("coverCached").default(false).notNull(),
+  epubCached: boolean("epubCached").default(false).notNull(),
   generatedAt: timestamp("generatedAt").defaultNow().notNull(),
 });
 

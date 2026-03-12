@@ -1,0 +1,1 @@
+ALTER TABLE `book_summaries` ADD `epubCached` boolean DEFAULT false NOT NULL;

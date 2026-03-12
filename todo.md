@@ -32,3 +32,11 @@
 - [x] Elegantes Layout: Verlagsname-Stil, Ornament-Linie, Titel zentriert, Autor unten
 - [x] 8 Farbpaletten (Mitternachtsblau, Altes Leder, Dunkelgrün, Tabak, Indigo, Pflaume, Schieferblau, Olivgrau)
 - [x] getCoverUrl() übergibt Titel+Autor als Query-Parameter für SVG-Generierung
+- [x] EPUB-Caching: server/epubs.ts — on-demand herunterladen, lokal in data/epubs/ speichern
+- [x] Express-Endpunkt GET /api/epubs/:id — lädt EPUB on-demand, cached auf Disk, liefert selbst aus
+- [x] DB-Spalte epubCached in book_summaries (boolean)
+- [x] Frontend Reader.tsx nutzt /api/epubs/:id statt direkter Gutenberg-URL
+- [x] Polite delay für Batch-Downloads (Standard 2000ms), User-Agent Header
+- [x] Magic-Byte-Validierung (PK-Header) und Mindestgröße-Check
+- [x] getEpubProxyUrl() in shared/gutenberg.ts
+- [x] 10 Tests für EPUB-Cache-Service (39 Tests gesamt, alle grün)

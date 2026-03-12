@@ -70,8 +70,28 @@ export function getCoverUrlById(gutenbergId: number): string {
   return `/api/covers/${gutenbergId}`;
 }
 
+/**
+ * Returns the raw Gutendex EPUB URL for a book (if available).
+ * Use getEpubProxyUrl() in the frontend instead — this is only for passing
+ * the known URL to the server as a hint.
+ */
 export function getEpubUrl(book: GutenbergBook): string | null {
   return book.formats["application/epub+zip"] || null;
+}
+
+/**
+ * Returns our own EPUB proxy endpoint URL.
+ * The server downloads the EPUB on first request and caches it locally —
+ * we never stream directly from gutenberg.org.
+ *
+ * The ?url= parameter passes the known Gutendex EPUB URL as a hint so the
+ * server can try it first before falling back to constructed candidate URLs.
+ */
+export function getEpubProxyUrl(book: GutenbergBook): string | null {
+  const rawUrl = getEpubUrl(book);
+  if (!rawUrl) return null; // No EPUB available for this book
+  const params = new URLSearchParams({ url: rawUrl });
+  return `/api/epubs/${book.id}?${params.toString()}`;
 }
 
 export function getAuthorDisplay(book: GutenbergBook): string {
