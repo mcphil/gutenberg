@@ -106,9 +106,18 @@ export default function Reader({ bookId }: ReaderProps) {
       renditionRef.current = rendition;
       applyStyles(rendition);
 
+      // epub.js needs locations to be generated before start.percentage is non-zero.
+      // We generate them once the book is ready (1 char per "location" is fast enough
+      // for typical Gutenberg EPUBs and keeps the percentage accurate).
+      rendition.book.ready.then(() => {
+        rendition.book.locations.generate(1024).catch(() => {
+          // Non-fatal: percentage will stay 0 if generation fails (e.g. DRM)
+        });
+      }).catch(() => {});
+
       rendition.on("relocated", (location: { start: { cfi: string; percentage: number }; atEnd: boolean }) => {
         const cfi = location.start.cfi;
-        const pct = location.start.percentage;
+        const pct = location.start.percentage ?? 0;
         locationRef.current = cfi;
         setCurrentPage(Math.round(pct * 100));
 
