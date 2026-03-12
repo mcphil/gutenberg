@@ -46,11 +46,21 @@ export interface BookSummaryResult {
   fromCache: boolean;
 }
 
+/**
+ * Returns our own cover endpoint URL.
+ * The server downloads the image on first request and caches it locally —
+ * we never hotlink directly from gutenberg.org or openlibrary.org.
+ */
 export function getCoverUrl(book: GutenbergBook): string {
-  return (
-    book.formats["image/jpeg"] ||
-    `https://www.gutenberg.org/cache/epub/${book.id}/pg${book.id}.cover.medium.jpg`
-  );
+  return `/api/covers/${book.id}`;
+}
+
+/**
+ * Same as getCoverUrl but accepts just the numeric ID.
+ * Useful when we only have the ID stored (e.g. in localStorage recent-books).
+ */
+export function getCoverUrlById(gutenbergId: number): string {
+  return `/api/covers/${gutenbergId}`;
 }
 
 export function getEpubUrl(book: GutenbergBook): string | null {

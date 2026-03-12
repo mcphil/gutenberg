@@ -15,6 +15,13 @@
       "when": 1773314592307,
       "tag": "0001_messy_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1773317987989,
+      "tag": "0002_reflective_namora",
+      "breakpoints": true
     }
   ]
 }

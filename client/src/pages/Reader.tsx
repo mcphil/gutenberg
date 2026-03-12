@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/popover";
 import { trpc } from "@/lib/trpc";
 import { useReadingProgress, useBookmarks, useReaderPreferences } from "@/hooks/useLocalStorage";
-import { getEpubUrl, getCoverUrl } from "../../../shared/gutenberg";
+import { getEpubUrl, getCoverUrl, getCoverUrlById } from "../../../shared/gutenberg";
 
 interface ReaderProps {
   bookId: number;
@@ -60,9 +60,10 @@ export default function Reader({ bookId }: ReaderProps) {
   useEffect(() => {
     if (book) {
       setBookTitle(book.title);
-      setBookCover(getCoverUrl(book));
+      // Always use our own cover endpoint — never store a gutenberg.org URL
+      setBookCover(getCoverUrlById(bookId));
     }
-  }, [book]);
+  }, [book, bookId]);
 
   // Apply reader theme and font settings to rendition
   const applyStyles = useCallback(

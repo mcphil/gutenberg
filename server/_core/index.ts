@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { getCoverPath } from "../covers";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -35,6 +36,29 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // Cover image proxy — downloads on first request, serves from local disk thereafter
+  app.get("/api/covers/:id", async (req, res) => {
+    const id = parseInt(req.params.id ?? "", 10);
+    if (isNaN(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid book ID" });
+      return;
+    }
+    try {
+      const filePath = await getCoverPath(id);
+      if (!filePath) {
+        res.status(404).json({ error: "Cover not found" });
+        return;
+      }
+      // Long-lived cache: covers never change for a given book ID
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("Content-Type", "image/jpeg");
+      res.sendFile(filePath);
+    } catch (err) {
+      console.error(`[covers] Error serving cover for ${id}:`, err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
   // tRPC API
   app.use(
     "/api/trpc",

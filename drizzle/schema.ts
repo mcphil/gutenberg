@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { boolean, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -21,6 +21,7 @@ export const bookSummaries = mysqlTable("book_summaries", {
   gutenbergId: int("gutenbergId").notNull().unique(),
   shortSummary: text("shortSummary"),
   longSummary: text("longSummary"),
+  coverCached: boolean("coverCached").default(false).notNull(),
   generatedAt: timestamp("generatedAt").defaultNow().notNull(),
 });
 

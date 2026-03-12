@@ -155,7 +155,9 @@ export function useRecentBooks() {
     (book: Omit<RecentBook, "viewedAt">) => {
       setRecentBooks((prev) => {
         const filtered = prev.filter((b) => b.gutenbergId !== book.gutenbergId);
-        return [{ ...book, viewedAt: Date.now() }, ...filtered].slice(0, 20);
+        // Always store our own cover endpoint URL, never a gutenberg.org URL
+        const coverUrl = `/api/covers/${book.gutenbergId}`;
+        return [{ ...book, coverUrl, viewedAt: Date.now() }, ...filtered].slice(0, 20);
       });
     },
     [setRecentBooks]
