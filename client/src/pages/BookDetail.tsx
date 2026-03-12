@@ -24,7 +24,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
   const { data: book, isLoading } = trpc.books.byId.useQuery({ id: bookId });
   const { data: cachedSummary } = trpc.summaries.getCached.useQuery({ gutenbergId: bookId });
   const { data: relatedBooks, isLoading: relatedLoading } = trpc.books.related.useQuery(
-    { gutenbergId: bookId, count: 5 },
+    { gutenbergId: bookId, count: 4 },
     { enabled: !!book, staleTime: 10 * 60 * 1000 }
   );
 
@@ -227,9 +227,9 @@ export default function BookDetail({ bookId }: BookDetailProps) {
           >
             Ähnliche Bücher
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
             {relatedLoading
-              ? Array.from({ length: 5 }).map((_, i) => <BookCardSkeleton key={i} />)
+              ? Array.from({ length: 4 }).map((_, i) => <BookCardSkeleton key={i} />)
               : relatedBooks?.map((related) => (
                   <BookCard
                     key={related.gutenbergId}
