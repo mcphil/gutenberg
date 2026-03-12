@@ -178,10 +178,6 @@ export default function BookDetail({ bookId }: BookDetailProps) {
 
           {/* Summary section */}
           <div className="mb-6">
-            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
-              Zusammenfassung
-            </h2>
-
             {summary?.longSummary ? (
               <div className="bg-accent/30 border border-border rounded-lg p-4 mb-3">
                 <div className="flex items-center gap-1.5 mb-2">
