@@ -83,3 +83,4 @@
 - [x] Cookie-Consent-Banner (nur technisch notwendige Cookies, localStorage-Speicherung der Einwilligung)
 - [x] SiteFooter mit Links zu Impressum, Datenschutz, Project Gutenberg
 - [x] Route-Registrierung in App.tsx (/impressum, /datenschutz); Footer ausgeblendet im Reader
+- [x] Google Fonts durch @fontsource npm-Pakete ersetzen (Inter, Lora, Merriweather) — keine externen Requests mehr
