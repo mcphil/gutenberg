@@ -73,3 +73,4 @@
 - [x] BookCard: Jahreszahl im Footer statt Tags; Tags ins Hover-Overlay verschoben
 - [x] Bug: Erscheinungsjahr zeigt immer 2026 statt echtem Jahr — issued ist Gutenberg-Upload-Datum
 - [x] Jahr (issued) aus BookCard, Catalog, BookDetail und BrowseMode entfernt; Code-Kommentar hinterlassen
+- [x] BookDetail: Sektion 'Ähnliche Bücher' mit 4-5 thematisch verwandten Büchern (basierend auf Subjects)

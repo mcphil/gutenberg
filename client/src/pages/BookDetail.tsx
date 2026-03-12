@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { ArrowLeft, BookOpen, Download, Sparkles, Tag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BookCard, BookCardSkeleton } from "@/components/BookCard";
 import { trpc } from "@/lib/trpc";
 import {
   getAuthorDisplay, parseAuthors, getAuthorYears, getCoverUrl,
@@ -22,6 +23,10 @@ export default function BookDetail({ bookId }: BookDetailProps) {
 
   const { data: book, isLoading } = trpc.books.byId.useQuery({ id: bookId });
   const { data: cachedSummary } = trpc.summaries.getCached.useQuery({ gutenbergId: bookId });
+  const { data: relatedBooks, isLoading: relatedLoading } = trpc.books.related.useQuery(
+    { gutenbergId: bookId, count: 5 },
+    { enabled: !!book, staleTime: 10 * 60 * 1000 }
+  );
 
   const progress = getProgress(bookId);
 
@@ -216,6 +221,30 @@ export default function BookDetail({ bookId }: BookDetailProps) {
           </div>
         </div>
       </div>
+
+      {/* Ähnliche Bücher */}
+      {(relatedLoading || (relatedBooks && relatedBooks.length > 0)) && (
+        <div className="mt-10 pt-8 border-t border-border">
+          <h2
+            className="text-lg font-semibold text-foreground mb-5"
+            style={{ fontFamily: "Lora, Georgia, serif" }}
+          >
+            Ähnliche Bücher
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            {relatedLoading
+              ? Array.from({ length: 5 }).map((_, i) => <BookCardSkeleton key={i} />)
+              : relatedBooks?.map((related) => (
+                  <BookCard
+                    key={related.gutenbergId}
+                    book={related as any}
+                    onClick={() => navigate(`/book/${related.gutenbergId}`)}
+                  />
+                ))
+            }
+          </div>
+        </div>
+      )}
     </div>
   );
 }

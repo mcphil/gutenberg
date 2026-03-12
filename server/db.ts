@@ -171,3 +171,52 @@ export async function upsertBookSummary(data: InsertBookSummary): Promise<void> 
     },
   });
 }
+
+// ─── Related books ────────────────────────────────────────────────────────────
+/**
+ * Find books that share subjects with the given book.
+ * Scores each candidate by counting how many of the source book's subject
+ * terms appear in the candidate's subjects field, then returns the top `count`.
+ */
+export async function getRelatedBooks(gutenbergId: number, count = 5): Promise<Book[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Fetch source book's subjects
+  const source = await getBookById(gutenbergId);
+  if (!source?.subjects) return [];
+
+  // Parse into individual terms (split on ";", trim, filter very short ones)
+  const terms = source.subjects
+    .split(";")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 3)
+    .slice(0, 6);
+
+  if (terms.length === 0) return [];
+
+  // Safely escape each term for use in LIKE patterns (escape %, _, \)
+  const escapeTerm = (t: string) =>
+    "'%" + t.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_").replace(/'/g, "''") + "%'";
+
+  // Score = number of matching subject terms
+  const scoreExpr = terms
+    .map((t) => `(CASE WHEN subjects LIKE ${escapeTerm(t)} THEN 1 ELSE 0 END)`)
+    .join(" + ");
+
+  const orConditions = terms
+    .map((t) => `subjects LIKE ${escapeTerm(t)}`)
+    .join(" OR ");
+
+  const [rows] = await db.execute(
+    sql`SELECT *, (${sql.raw(scoreExpr)}) AS _score
+        FROM books
+        WHERE type = 'Text'
+          AND gutenbergId != ${gutenbergId}
+          AND (${sql.raw(orConditions)})
+        ORDER BY _score DESC, gutenbergId DESC
+        LIMIT ${count}`
+  );
+
+  return (rows as unknown as Book[]) ?? [];
+}

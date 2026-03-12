@@ -3,7 +3,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { getBookSummary, listBooks, getBookById, getRandomBooks, getTotalBookCount } from "./db";
+import { getBookSummary, listBooks, getBookById, getRandomBooks, getTotalBookCount, getRelatedBooks } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -54,6 +54,16 @@ export const appRouter = router({
     count: publicProcedure.query(async () => {
       return getTotalBookCount();
     }),
+
+    // Get thematically related books based on shared subjects
+    related: publicProcedure
+      .input(z.object({
+        gutenbergId: z.number().int().positive(),
+        count: z.number().int().min(1).max(10).default(5),
+      }))
+      .query(async ({ input }) => {
+        return getRelatedBooks(input.gutenbergId, input.count);
+      }),
   }),
 
   summaries: router({
