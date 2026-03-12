@@ -7,7 +7,7 @@ import { BookCard, BookCardSkeleton } from "@/components/BookCard";
 import { trpc } from "@/lib/trpc";
 import {
   getAuthorDisplay, parseAuthors, getAuthorYears, getCoverUrl,
-  parseSubjects, parseBookshelves, translateSubject
+  parseSubjects, parseBookshelves, translateSubject, FILTER_TOPICS
 } from "../../../shared/gutenberg";
 import { useRecentBooks, useReadingProgress } from "@/hooks/useLocalStorage";
 
@@ -154,11 +154,27 @@ export default function BookDetail({ bookId }: BookDetailProps) {
                 <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Themen</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {subjects.map((s) => (
-                  <Badge key={s} variant="secondary" className="text-xs">
-                    {translateSubject(s)}
-                  </Badge>
-                ))}
+                {subjects.map((s) => {
+                  // Find a matching catalog filter topic for this subject
+                  const matchingTopic = FILTER_TOPICS.find((t) =>
+                    s.toLowerCase().includes(t.value.toLowerCase())
+                  );
+                  return matchingTopic ? (
+                    <Badge
+                      key={s}
+                      variant="secondary"
+                      className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                      onClick={() => navigate(`/?topic=${encodeURIComponent(matchingTopic.value)}`)}
+                      title={`Alle ${matchingTopic.label} anzeigen`}
+                    >
+                      {translateSubject(s)}
+                    </Badge>
+                  ) : (
+                    <Badge key={s} variant="secondary" className="text-xs">
+                      {translateSubject(s)}
+                    </Badge>
+                  );
+                })}
               </div>
             </div>
           )}

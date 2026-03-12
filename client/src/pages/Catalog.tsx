@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { BookCard, BookCardSkeleton } from "@/components/BookCard";
 import { FilterPanel } from "@/components/FilterPanel";
@@ -14,9 +14,21 @@ interface CatalogProps {
 
 export default function Catalog({ view, searchQuery }: CatalogProps) {
   const [, navigate] = useLocation();
+  const search = useSearch();
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<"popular" | "ascending" | "descending">("popular");
-  const [selectedSubject, setSelectedSubject] = useState("");
+  // Initialise from ?topic= URL param so BookDetail can link here with a pre-set filter
+  const [selectedSubject, setSelectedSubject] = useState(() => {
+    const params = new URLSearchParams(search);
+    return params.get("topic") ?? "";
+  });
+
+  // Sync selectedSubject when the URL ?topic param changes (e.g. browser back/forward)
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const topicFromUrl = params.get("topic") ?? "";
+    setSelectedSubject(topicFromUrl);
+  }, [search]);
 
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [searchQuery, sortBy, selectedSubject]);
