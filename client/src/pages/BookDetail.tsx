@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, BookOpen, Download, Loader2, Sparkles, Tag, User } from "lucide-react";
+import { ArrowLeft, BookOpen, Download, Sparkles, Tag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
@@ -17,13 +17,11 @@ interface BookDetailProps {
 export default function BookDetail({ bookId }: BookDetailProps) {
   const [, navigate] = useLocation();
   const [imgError, setImgError] = useState(false);
-  const [summaryRequested, setSummaryRequested] = useState(false);
   const { addRecentBook } = useRecentBooks();
   const { getProgress } = useReadingProgress();
 
   const { data: book, isLoading } = trpc.books.byId.useQuery({ id: bookId });
   const { data: cachedSummary } = trpc.summaries.getCached.useQuery({ gutenbergId: bookId });
-  const generateSummary = trpc.summaries.generate.useMutation();
 
   const progress = getProgress(bookId);
 
@@ -39,22 +37,12 @@ export default function BookDetail({ bookId }: BookDetailProps) {
     }
   }, [book?.gutenbergId]);
 
-  const handleGenerateSummary = () => {
-    if (!book) return;
-    setSummaryRequested(true);
-    generateSummary.mutate({
-      gutenbergId: book.gutenbergId,
-      title: book.title,
-      authorsRaw: book.authors ?? "",
-      subjectsRaw: book.subjects ?? "",
-      type: "both",
-    });
-  };
-
-  const summary = generateSummary.data || (cachedSummary ? {
-    shortSummary: cachedSummary.shortSummary ?? "",
-    longSummary: cachedSummary.longSummary ?? "",
-  } : null);
+  const summary = cachedSummary
+    ? {
+        shortSummary: cachedSummary.shortSummary ?? "",
+        longSummary: cachedSummary.longSummary ?? "",
+      }
+    : null;
 
   if (isLoading) {
     return <BookDetailSkeleton />;
@@ -190,30 +178,11 @@ export default function BookDetail({ bookId }: BookDetailProps) {
 
           {/* Summary section */}
           <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide">
-                Zusammenfassung
-              </h2>
-              {!summary && !summaryRequested && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs gap-1.5"
-                  onClick={handleGenerateSummary}
-                  disabled={generateSummary.isPending}
-                >
-                  {generateSummary.isPending ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3 h-3" />
-                  )}
-                  KI-Zusammenfassung
-                </Button>
-              )}
-            </div>
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
+              Zusammenfassung
+            </h2>
 
-            {/* AI summary */}
-            {summary?.longSummary && (
+            {summary?.longSummary ? (
               <div className="bg-accent/30 border border-border rounded-lg p-4 mb-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Sparkles className="w-3.5 h-3.5 text-primary" />
@@ -223,18 +192,9 @@ export default function BookDetail({ bookId }: BookDetailProps) {
                   {summary.longSummary}
                 </p>
               </div>
-            )}
-
-            {generateSummary.isPending && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Zusammenfassung wird generiert…
-              </div>
-            )}
-
-            {!summary?.longSummary && !generateSummary.isPending && (
+            ) : (
               <p className="text-sm text-muted-foreground italic">
-                Noch keine Zusammenfassung vorhanden. Klicke auf „KI-Zusammenfassung" um eine neutrale, deutschsprachige Zusammenfassung zu generieren.
+                Für dieses Buch ist noch keine Zusammenfassung verfügbar.
               </p>
             )}
           </div>

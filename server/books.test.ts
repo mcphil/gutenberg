@@ -43,23 +43,6 @@ const mockLocalBook = {
   importedAt: new Date("2026-03-12"),
 };
 
-// ─── Mock LLM ─────────────────────────────────────────────────────────────────
-
-vi.mock("./_core/llm", () => ({
-  invokeLLM: vi.fn().mockResolvedValue({
-    choices: [
-      {
-        message: {
-          content: JSON.stringify({
-            short: "Ein philosophisches Werk über Logik und Sprache.",
-            long: "Der Tractatus Logico-Philosophicus ist ein frühes Werk Ludwig Wittgensteins, das 1921 veröffentlicht wurde. Es behandelt die Grenzen der Sprache und ihre Beziehung zur Welt.",
-          }),
-        },
-      },
-    ],
-  }),
-}));
-
 function createCtx(): TrpcContext {
   return {
     user: null,
@@ -145,59 +128,54 @@ describe("books.byId", () => {
   });
 });
 
-// ─── summaries.generate ───────────────────────────────────────────────────────
+// ─── summaries.getCached ──────────────────────────────────────────────────────
+// The generate mutation has been removed. Summaries are now pre-generated via
+// the batch script (server/scripts/generate-summaries.ts) and fetched here.
 
-describe("summaries.generate", () => {
+describe("summaries.getCached", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("generates a summary via LLM when no cache exists", async () => {
-    const { invokeLLM } = await import("./_core/llm");
-    const { upsertBookSummary } = await import("./db");
+  it("returns null when no summary exists in DB", async () => {
+    const { getBookSummary } = await import("./db");
+    vi.mocked(getBookSummary).mockResolvedValueOnce(undefined);
 
     const caller = appRouter.createCaller(createCtx());
-    const result = await caller.summaries.generate({
-      gutenbergId: 5740,
-      title: "Tractatus Logico-Philosophicus",
-      authorsRaw: "Wittgenstein, Ludwig, 1889-1951",
-      subjectsRaw: "Logic; Philosophy",
-      type: "both",
-    });
+    const result = await caller.summaries.getCached({ gutenbergId: 5740 });
 
-    expect(result.shortSummary).toBe("Ein philosophisches Werk über Logik und Sprache.");
-    expect(result.longSummary).toContain("Wittgenstein");
-    expect(result.fromCache).toBe(false);
-    expect(invokeLLM).toHaveBeenCalledOnce();
-    expect(upsertBookSummary).toHaveBeenCalledWith(
-      expect.objectContaining({ gutenbergId: 5740 })
-    );
+    expect(result).toBeNull();
+    expect(getBookSummary).toHaveBeenCalledWith(5740);
   });
 
-  it("returns cached summary without calling LLM", async () => {
+  it("returns cached summary when it exists in DB", async () => {
     const { getBookSummary } = await import("./db");
-    const { invokeLLM } = await import("./_core/llm");
-
     vi.mocked(getBookSummary).mockResolvedValueOnce({
       id: 1,
       gutenbergId: 5740,
-      shortSummary: "Cached short summary.",
-      longSummary: "Cached long summary about Wittgenstein.",
+      shortSummary: "Ein philosophisches Werk über Logik und Sprache.",
+      longSummary: "Der Tractatus Logico-Philosophicus ist ein frühes Werk Ludwig Wittgensteins.",
       generatedAt: new Date(),
       coverCached: false,
       epubCached: false,
     });
 
     const caller = appRouter.createCaller(createCtx());
-    const result = await caller.summaries.generate({
-      gutenbergId: 5740,
-      title: "Tractatus",
-      authorsRaw: "Wittgenstein, Ludwig, 1889-1951",
-      type: "both",
-    });
+    const result = await caller.summaries.getCached({ gutenbergId: 5740 });
 
-    expect(result.fromCache).toBe(true);
-    expect(result.shortSummary).toBe("Cached short summary.");
-    expect(invokeLLM).not.toHaveBeenCalled();
+    expect(result).not.toBeNull();
+    expect(result?.shortSummary).toBe("Ein philosophisches Werk über Logik und Sprache.");
+    expect(result?.longSummary).toContain("Wittgenstein");
+    expect(getBookSummary).toHaveBeenCalledWith(5740);
+  });
+
+  it("does not expose a generate mutation (batch-only generation)", () => {
+    // summaries.generate was removed — only getCached remains.
+    // Verify by checking the router's procedure map directly.
+    const procedures = Object.keys(appRouter._def.procedures);
+    const hasGenerate = procedures.some((p) => p.startsWith("summaries.generate"));
+    expect(hasGenerate).toBe(false);
+    const hasCached = procedures.some((p) => p.startsWith("summaries.getCached"));
+    expect(hasCached).toBe(true);
   });
 });

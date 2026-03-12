@@ -226,22 +226,8 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
   const subjects = parseSubjects(book.subjects);
 
   const { data: cachedSummary } = trpc.summaries.getCached.useQuery({ gutenbergId: book.gutenbergId });
-  const generateSummary = trpc.summaries.generate.useMutation();
 
-  const shortSummary =
-    generateSummary.data?.shortSummary ||
-    cachedSummary?.shortSummary ||
-    null;
-
-  const handleGetSummary = () => {
-    generateSummary.mutate({
-      gutenbergId: book.gutenbergId,
-      title: book.title,
-      authorsRaw: book.authors ?? "",
-      subjectsRaw: book.subjects ?? "",
-      type: "short",
-    });
-  };
+  const shortSummary = cachedSummary?.shortSummary ?? null;
 
   return (
     <div className={`browse-card ${state}`}>
@@ -284,28 +270,16 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
 
           {/* Summary */}
           {shortSummary ? (
-            <p className="text-sm leading-relaxed text-foreground/80 mb-4">
-              {shortSummary}
-            </p>
-          ) : (
-            <div className="mb-4">
-              {generateSummary.isPending ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Zusammenfassung wird generiert…
-                </div>
-              ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  onClick={handleGetSummary}
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Kurzzusammenfassung
-                </Button>
-              )}
+            <div className="flex items-start gap-1.5 mb-4">
+              <Sparkles className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+              <p className="text-sm leading-relaxed text-foreground/80">
+                {shortSummary}
+              </p>
             </div>
+          ) : (
+            <p className="text-sm text-muted-foreground italic mb-4">
+              Noch keine Zusammenfassung verfügbar.
+            </p>
           )}
 
           {/* Subjects */}

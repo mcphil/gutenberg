@@ -3,8 +3,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { invokeLLM } from "./_core/llm";
-import { getBookSummary, upsertBookSummary, listBooks, getBookById, getRandomBooks, getTotalBookCount } from "./db";
+import { getBookSummary, listBooks, getBookById, getRandomBooks, getTotalBookCount } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -58,115 +57,7 @@ export const appRouter = router({
   }),
 
   summaries: router({
-    // Generate or retrieve cached AI summary for a book
-    generate: publicProcedure
-      .input(z.object({
-        gutenbergId: z.number().int().positive(),
-        title: z.string(),
-        /** Raw authors CSV string from pg_catalog.csv, e.g. "Kafka, Franz, 1883-1924" */
-        authorsRaw: z.string(),
-        /** Semicolon-separated subjects from pg_catalog.csv */
-        subjectsRaw: z.string().optional(),
-        type: z.enum(["short", "long", "both"]).default("both"),
-      }))
-      .mutation(async ({ input }) => {
-        // Check cache first
-        const cached = await getBookSummary(input.gutenbergId);
-        if (cached?.shortSummary && cached?.longSummary) {
-          return {
-            gutenbergId: input.gutenbergId,
-            shortSummary: cached.shortSummary,
-            longSummary: cached.longSummary,
-            fromCache: true,
-          };
-        }
-
-        // Parse authors from CSV format "Lastname, Firstname, YYYY-YYYY"
-        const authorParts = input.authorsRaw.split(";").map((a) => a.trim()).filter(Boolean);
-        const authorDisplay = authorParts.map((raw) => {
-          const yearMatch = raw.match(/,\s*(\d{4})?-(\d{4})?$/);
-          const name = yearMatch ? raw.slice(0, raw.lastIndexOf(",")).trim() : raw;
-          const parts = name.split(", ");
-          return parts.length === 2 ? `${parts[1]} ${parts[0]}` : name;
-        }).join(", ");
-
-        // Parse subjects
-        const subjects = (input.subjectsRaw || "")
-          .split(";")
-          .map((s) => s.trim())
-          .filter(Boolean)
-          .slice(0, 8)
-          .join(", ");
-
-        const systemPrompt = `Du bist ein sachlicher Literaturkritiker. Deine Aufgabe ist es, neutrale, informative Zusammenfassungen von Büchern zu schreiben, die Lesern helfen zu entscheiden, ob sie ihre Lesezeit in ein Buch investieren möchten.
-
-Wichtige Regeln:
-- Bleibe streng neutral und sachlich — keine Wertungen wie "fesselnd", "brillant", "meisterhaft"
-- Beschreibe WAS das Buch ist, nicht ob es gut ist
-- Nenne Epoche, Gattung, Hauptthemen und Handlungsrahmen
-- Vermeide Spoiler für Wendepunkte oder das Ende
-- Schreibe auf Deutsch`;
-
-        const userPrompt = `Schreibe zwei Zusammenfassungen für folgendes Buch:
-
-Titel: "${input.title}"
-Autor: ${authorDisplay}
-Themen/Kategorien: ${subjects || "nicht angegeben"}
-
-Erstelle:
-1. KURZZUSAMMENFASSUNG (max. 2 Sätze, ~30 Wörter): Gattung, Epoche und zentrales Thema
-2. DETAILZUSAMMENFASSUNG (4-6 Sätze, ~120 Wörter): Handlungsrahmen, Hauptfiguren, zentrale Konflikte, literarischer Kontext — alles was hilft zu entscheiden ob man das Buch lesen möchte
-
-Antworte im JSON-Format:
-{
-  "short": "...",
-  "long": "..."
-}`;
-
-        const response = await invokeLLM({
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
-          response_format: {
-            type: "json_schema",
-            json_schema: {
-              name: "book_summary",
-              strict: true,
-              schema: {
-                type: "object",
-                properties: {
-                  short: { type: "string", description: "Short summary, max 2 sentences" },
-                  long: { type: "string", description: "Detailed summary, 4-6 sentences" },
-                },
-                required: ["short", "long"],
-                additionalProperties: false,
-              },
-            },
-          },
-        });
-
-        const rawContent = response.choices?.[0]?.message?.content;
-        if (!rawContent) throw new Error("No LLM response");
-        const content = typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent);
-        const parsed = JSON.parse(content) as { short: string; long: string };
-
-        // Cache in DB
-        await upsertBookSummary({
-          gutenbergId: input.gutenbergId,
-          shortSummary: parsed.short,
-          longSummary: parsed.long,
-        });
-
-        return {
-          gutenbergId: input.gutenbergId,
-          shortSummary: parsed.short,
-          longSummary: parsed.long,
-          fromCache: false,
-        };
-      }),
-
-    // Get cached summary without generating
+    // Fetch pre-generated summary from database (generated via batch script)
     getCached: publicProcedure
       .input(z.object({ gutenbergId: z.number().int().positive() }))
       .query(async ({ input }) => {

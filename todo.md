@@ -58,3 +58,11 @@
 - [x] Umbenennung: "Gutenberg Leser" → "Gutenberg Navigator" überall (Header, Hero, HTML-Titel, Meta-Description, Fallback-Cover-SVG, Code-Kommentare); Subline mit dynamischer Buchanzahl aus DB
 - [x] Favicon: aufgeschlagenes Buch-Icon im App-Stil, als SVG + ICO + Apple-Touch-Icon (180px), über CDN eingebunden
 - [x] Bug: Lesestatus zeigt immer 0% — Ursache: epub.js benötigt book.locations.generate() damit start.percentage berechnet wird; wird jetzt nach book.ready aufgerufen
+
+## Batch KI-Zusammenfassungen
+- [x] Batch-Script server/scripts/generate-summaries.ts — generiert alle fehlenden Zusammenfassungen mit Delay
+- [x] Manuellen "KI-Zusammenfassung generieren" Button aus BookDetail.tsx entfernen
+- [x] Manuellen Button aus BrowseMode.tsx entfernen
+- [x] summaries.generate Mutation aus Router entfernt (nur noch getCached)
+- [x] Zusammenfassungen werden nur noch angezeigt wenn vorhanden, kein Trigger mehr für User
+- [x] 40 Tests grün (1 neuer Test für summaries.getCached)
