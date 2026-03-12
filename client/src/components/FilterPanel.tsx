@@ -10,8 +10,8 @@ import {
 import { FILTER_TOPICS } from "../../../shared/gutenberg";
 
 interface FilterPanelProps {
-  sortBy: "popular" | "ascending" | "descending";
-  onSortChange: (v: "popular" | "ascending" | "descending") => void;
+  sortBy: "popular" | "ascending" | "descending" | "random";
+  onSortChange: (v: "popular" | "ascending" | "descending" | "random") => void;
   selectedSubject: string;
   onSubjectChange: (s: string) => void;
   totalCount: number;
@@ -51,6 +51,7 @@ export function FilterPanel({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="random">Zufällig</SelectItem>
               <SelectItem value="popular">Beliebtheit</SelectItem>
               <SelectItem value="ascending">Titel A–Z</SelectItem>
               <SelectItem value="descending">Titel Z–A</SelectItem>

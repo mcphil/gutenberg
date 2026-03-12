@@ -64,8 +64,7 @@ export interface BookListOptions {
   topic?: string;
   /** Exact subject tag filter — matches books whose subjects field contains this string */
   subject?: string;
-  sort: "popular" | "ascending" | "descending";
-}
+  sort?: "popular" | "ascending" | "descending" | "random";}
 
 /**
  * List German books from the local catalog with pagination, search and filter.
@@ -108,6 +107,8 @@ export async function listBooks(opts: BookListOptions): Promise<{ books: Book[];
     orderClause = sql`ORDER BY ${books.title} ASC`;
   } else if (opts.sort === "descending") {
     orderClause = sql`ORDER BY ${books.title} DESC`;
+  } else if (opts.sort === "random") {
+    orderClause = sql`ORDER BY RAND()`;
   } else {
     // "popular" — sort by gutenbergId DESC as a proxy (higher IDs = more recently added)
     orderClause = sql`ORDER BY ${books.gutenbergId} DESC`;

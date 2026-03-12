@@ -84,3 +84,4 @@
 - [x] SiteFooter mit Links zu Impressum, Datenschutz, Project Gutenberg
 - [x] Route-Registrierung in App.tsx (/impressum, /datenschutz); Footer ausgeblendet im Reader
 - [x] Google Fonts durch @fontsource npm-Pakete ersetzen (Inter, Lora, Merriweather) — keine externen Requests mehr
+- [x] Sortieroption "Zufällig" hinzugefügt (ORDER BY RAND()) und als Standard gesetzt

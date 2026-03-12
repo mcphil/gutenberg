@@ -24,7 +24,7 @@ export const appRouter = router({
         search: z.string().optional(),
         topic: z.string().optional(),
         subject: z.string().optional(),
-        sort: z.enum(["popular", "ascending", "descending"]).default("popular"),
+        sort: z.enum(["popular", "ascending", "descending", "random"]).default("random"),
       }))
       .query(async ({ input }) => {
         return listBooks({

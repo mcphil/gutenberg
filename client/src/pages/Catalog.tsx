@@ -17,7 +17,7 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
   const [, navigate] = useLocation();
   const search = useSearch();
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState<"popular" | "ascending" | "descending">("popular");
+  const [sortBy, setSortBy] = useState<"popular" | "ascending" | "descending" | "random">("random");
   // Initialise from ?topic= URL param so FilterPanel topic buttons work
   const [selectedSubject, setSelectedSubject] = useState(() => {
     const params = new URLSearchParams(search);
