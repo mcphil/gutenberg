@@ -27,3 +27,8 @@
 - [x] Frontend nutzt nur noch /api/covers/:id statt gutenberg.org URLs
 - [x] Polite delay-Parameter in downloadCover() für Batch-Downloads
 - [x] prefetchCovers() mit konfigurierbarem Delay (Standard 1500ms)
+- [x] Typografisches SVG-Fallback-Cover für Bücher ohne Bild (serverseitig generiert, Titel + Autor, charakteristische Farbe aus Buchtitel-Hash)
+- [x] /api/covers/:id liefert SVG-Fallback wenn kein echtes Cover vorhanden
+- [x] Elegantes Layout: Verlagsname-Stil, Ornament-Linie, Titel zentriert, Autor unten
+- [x] 8 Farbpaletten (Mitternachtsblau, Altes Leder, Dunkelgrün, Tabak, Indigo, Pflaume, Schieferblau, Olivgrau)
+- [x] getCoverUrl() übergibt Titel+Autor als Query-Parameter für SVG-Generierung

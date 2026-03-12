@@ -47,17 +47,24 @@ export interface BookSummaryResult {
 }
 
 /**
- * Returns our own cover endpoint URL.
- * The server downloads the image on first request and caches it locally —
- * we never hotlink directly from gutenberg.org or openlibrary.org.
+ * Returns our own cover endpoint URL, including title and author as query
+ * parameters so the server can generate a typographic SVG fallback if no
+ * real cover image is available.
+ *
+ * We never hotlink directly from gutenberg.org or openlibrary.org.
  */
 export function getCoverUrl(book: GutenbergBook): string {
-  return `/api/covers/${book.id}`;
+  const authorName = book.authors[0]?.name ?? "";
+  // Gutenberg stores names as "Surname, Firstname" — flip for display
+  const parts = authorName.split(", ");
+  const displayAuthor = parts.length === 2 ? `${parts[1]} ${parts[0]}` : authorName;
+  const params = new URLSearchParams({ title: book.title, author: displayAuthor });
+  return `/api/covers/${book.id}?${params.toString()}`;
 }
 
 /**
- * Same as getCoverUrl but accepts just the numeric ID.
- * Useful when we only have the ID stored (e.g. in localStorage recent-books).
+ * Cover URL by ID only — used when we only have the numeric ID stored
+ * (e.g. in localStorage recent-books). No fallback metadata available here.
  */
 export function getCoverUrlById(gutenbergId: number): string {
   return `/api/covers/${gutenbergId}`;
