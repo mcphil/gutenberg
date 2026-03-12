@@ -90,3 +90,9 @@
 - [ ] Reading statistics dashboard
 - [ ] Export bookmarks as JSON
 - [ ] Share book link
+
+## Bug Fixes
+- [x] Englische Gutenberg-Fallback-Zusammenfassungen entfernt — nur noch KI-Zusammenfassungen auf Deutsch
+- [x] Englische Themen-Labels (subjects) im FilterPanel durch FILTER_TOPICS aus shared/gutenberg.ts ersetzt
+- [x] translateSubject() Funktion in shared/gutenberg.ts — übersetzt englische subjects für Buchkarten, Detailseite und Browse-Modus
+- [x] Kein englischer Fallback-Text mehr in der UI

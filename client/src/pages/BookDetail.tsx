@@ -4,7 +4,7 @@ import { ArrowLeft, BookOpen, Download, Loader2, Sparkles, Tag, User, Calendar }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
-import { getAuthorDisplay, getAuthorYears, getCoverUrl, getEpubUrl } from "../../../shared/gutenberg";
+import { getAuthorDisplay, getAuthorYears, getCoverUrl, getEpubUrl, translateSubject } from "../../../shared/gutenberg";
 import { useRecentBooks } from "@/hooks/useLocalStorage";
 import { useReadingProgress } from "@/hooks/useLocalStorage";
 
@@ -164,7 +164,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
               <div className="flex flex-wrap gap-1.5">
                 {book.subjects.map((s) => (
                   <Badge key={s} variant="secondary" className="text-xs">
-                    {s}
+                    {translateSubject(s)}
                   </Badge>
                 ))}
               </div>
@@ -228,16 +228,10 @@ export default function BookDetail({ bookId }: BookDetailProps) {
               </div>
             )}
 
-            {/* Gutenberg summary as fallback */}
-            {gutenbergSummary && !summary?.longSummary && (
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {gutenbergSummary}
-              </p>
-            )}
-
-            {!gutenbergSummary && !summary?.longSummary && !generateSummary.isPending && (
+            {/* No summary yet — show prompt to generate */}
+            {!summary?.longSummary && !generateSummary.isPending && (
               <p className="text-sm text-muted-foreground italic">
-                Keine Beschreibung verfügbar. Klicke auf „KI-Zusammenfassung" für eine automatisch generierte Zusammenfassung.
+                Noch keine Zusammenfassung vorhanden. Klicke auf „KI-Zusammenfassung" um eine neutrale, deutschsprachige Zusammenfassung zu generieren.
               </p>
             )}
           </div>

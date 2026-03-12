@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import {
-  getAuthorDisplay, getCoverUrl, getEpubUrl,
+  getAuthorDisplay, getCoverUrl, getEpubUrl, translateSubject,
   type GutenbergBook
 } from "../../../shared/gutenberg";
 
@@ -231,14 +231,11 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
   const { data: cachedSummary } = trpc.summaries.getCached.useQuery({ gutenbergId: book.id });
   const generateSummary = trpc.summaries.generate.useMutation();
 
-  const gutenbergSummary = book.summaries?.[0]
-    ?.replace(/\(This is an automatically generated summary\.\)/, "")
-    .trim();
-
+  // Only use AI-generated or cached summaries — never the English Gutenberg fallback
   const shortSummary =
     generateSummary.data?.shortSummary ||
     cachedSummary?.shortSummary ||
-    (gutenbergSummary ? gutenbergSummary.split(". ").slice(0, 2).join(". ") + "." : null);
+    null;
 
   const handleGetSummary = () => {
     setSummaryRequested(true);
@@ -324,7 +321,7 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
             <div className="flex flex-wrap gap-1.5 mb-4">
               {book.subjects.slice(0, 4).map((s) => (
                 <Badge key={s} variant="secondary" className="text-xs">
-                  {s.replace(/ -- .+/, "")}
+                  {translateSubject(s)}
                 </Badge>
               ))}
             </div>

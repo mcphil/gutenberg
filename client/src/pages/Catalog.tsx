@@ -63,7 +63,6 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
                 <BookCard
                   key={book.id}
                   book={book}
-                  shortSummary={book.summaries?.[0]}
                   onClick={() => handleBookClick(book)}
                 />
               ) : (
@@ -113,13 +112,15 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
 // ─── List Row ────────────────────────────────────────────────
 
 import { BookOpen, Download } from "lucide-react";
-import { getAuthorDisplay, getCoverUrl } from "../../../shared/gutenberg";
+import { getAuthorDisplay, getCoverUrl, translateSubject } from "../../../shared/gutenberg";
 
 function ListRow({ book, onClick }: { book: GutenbergBook; onClick: () => void }) {
   const [imgError, setImgError] = useState(false);
   const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
-  const summary = book.summaries?.[0];
+  // Do not use book.summaries — those are English Gutenberg auto-summaries
+  // AI summaries are loaded on the detail page or on demand
+  const summary: string | null = null;
 
   return (
     <div
@@ -157,7 +158,7 @@ function ListRow({ book, onClick }: { book: GutenbergBook; onClick: () => void }
         <p className="text-xs text-muted-foreground mb-1.5">{author}</p>
         {summary && (
           <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-            {summary.replace(/\(This is an automatically generated summary\.\)/, "").trim()}
+            {summary}
           </p>
         )}
       </div>

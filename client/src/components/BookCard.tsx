@@ -2,7 +2,7 @@ import { useState } from "react";
 import { BookOpen, Download, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { GutenbergBook } from "../../../shared/gutenberg";
-import { getAuthorDisplay, getCoverUrl } from "../../../shared/gutenberg";
+import { getAuthorDisplay, getCoverUrl, translateSubject } from "../../../shared/gutenberg";
 
 interface BookCardProps {
   book: GutenbergBook;
@@ -68,11 +68,11 @@ export function BookCard({ book, shortSummary, onClick, compact = false }: BookC
           </p>
         )}
 
-        {!compact && book.subjects.length > 0 && (
+          {!compact && book.subjects.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {book.subjects.slice(0, 2).map((s) => (
               <Badge key={s} variant="secondary" className="text-xs px-1.5 py-0 h-4 truncate max-w-[120px]">
-                {s.replace(/ -- .+/, "")}
+                {translateSubject(s)}
               </Badge>
             ))}
           </div>

@@ -1,6 +1,5 @@
 import { SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -8,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FILTER_TOPICS } from "../../../shared/gutenberg";
 
 interface FilterPanelProps {
   sortBy: "popular" | "ascending" | "descending";
@@ -20,20 +20,7 @@ interface FilterPanelProps {
 
 const SUBJECTS = [
   { value: "", label: "Alle Themen" },
-  { value: "fiction", label: "Belletristik" },
-  { value: "drama", label: "Drama" },
-  { value: "poetry", label: "Lyrik" },
-  { value: "novel", label: "Roman" },
-  { value: "short stories", label: "Kurzgeschichten" },
-  { value: "history", label: "Geschichte" },
-  { value: "philosophy", label: "Philosophie" },
-  { value: "science", label: "Wissenschaft" },
-  { value: "biography", label: "Biografie" },
-  { value: "fairy tales", label: "Märchen" },
-  { value: "adventure", label: "Abenteuer" },
-  { value: "children", label: "Kinder" },
-  { value: "war", label: "Krieg" },
-  { value: "travel", label: "Reise" },
+  ...FILTER_TOPICS,
 ];
 
 export function FilterPanel({
