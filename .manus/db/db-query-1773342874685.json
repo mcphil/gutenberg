@@ -1,0 +1,60 @@
+{
+  "query": "SELECT gutenbergId, title, issued FROM books WHERE issued IS NOT NULL LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute SELECT gutenbergId, title, issued FROM books WHERE issued IS NOT NULL LIMIT 10;",
+  "rows": [
+    {
+      "gutenbergId": "417",
+      "title": "Dr. Martin Luther's Deutsche Geistliche Lieder The Hymns of Martin Luther Set to Their Original Melodies, With an English Version",
+      "issued": "1996-02-01"
+    },
+    {
+      "gutenbergId": "607",
+      "title": "Die Augsburger Confession",
+      "issued": "1996-07-01"
+    },
+    {
+      "gutenbergId": "2054",
+      "title": "Iphigenie auf Tauris",
+      "issued": "2000-01-01"
+    },
+    {
+      "gutenbergId": "2146",
+      "title": "Egmont",
+      "issued": "2000-04-01"
+    },
+    {
+      "gutenbergId": "2174",
+      "title": "Frau und Kindern auf der Spur",
+      "issued": "2000-05-01"
+    },
+    {
+      "gutenbergId": "2187",
+      "title": "Oberon",
+      "issued": "2000-05-01"
+    },
+    {
+      "gutenbergId": "2188",
+      "title": "Die Aufzeichnungen des Malte Laurids Brigge",
+      "issued": "2000-05-01"
+    },
+    {
+      "gutenbergId": "2189",
+      "title": "Der G'wissenswurm: Bauernkomödie in drei Akten",
+      "issued": "2000-05-01"
+    },
+    {
+      "gutenbergId": "2190",
+      "title": "Isabella von Ägypten: Kaiser Karl des Fünften erste Jugendliebe",
+      "issued": "2000-05-01"
+    },
+    {
+      "gutenbergId": "2228",
+      "title": "Reineke Fuchs",
+      "issued": "2000-06-01"
+    }
+  ],
+  "messages": [],
+  "stdout": "gutenbergId\ttitle\tissued\n417\tDr. Martin Luther's Deutsche Geistliche Lieder The Hymns of Martin Luther Set to Their Original Melodies, With an English Version\t1996-02-01\n607\tDie Augsburger Confession\t1996-07-01\n2054\tIphigenie auf Tauris\t2000-01-01\n2146\tEgmont\t2000-04-01\n2174\tFrau und Kindern auf der Spur\t2000-05-01\n2187\tOberon\t2000-05-01\n2188\tDie Aufzeichnungen des Malte Laurids Brigge\t2000-05-01\n2189\tDer G'wissenswurm: Bauernkomödie in drei Akten\t2000-05-01\n2190\tIsabella von Ägypten: Kaiser Karl des Fünften erste Jugendliebe\t2000-05-01\n2228\tReineke Fuchs\t2000-06-01\n",
+  "stderr": "",
+  "execution_time_ms": 65
+}

@@ -293,12 +293,7 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
             </div>
           )}
 
-          {/* Year */}
-          {book.issued && (
-            <div className="text-xs text-muted-foreground mb-5">
-              {book.issued.substring(0, 4)}
-            </div>
-          )}
+          {/* NOTE: book.issued is the Gutenberg upload date, NOT the original publication year — do not display it */}
 
           {/* Actions */}
           <div className="flex gap-3">

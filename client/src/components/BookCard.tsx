@@ -114,16 +114,10 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
         >
           {book.title}
         </h3>
-        <div className="flex items-center justify-between gap-1 text-muted-foreground">
-          <div className="flex items-center gap-1 min-w-0">
-            <User className="w-3 h-3 shrink-0" />
-            <p className="line-clamp-1 text-xs">{author}</p>
-          </div>
-          {book.issued && (
-            <span className="text-xs shrink-0 tabular-nums">
-              {book.issued.substring(0, 4)}
-            </span>
-          )}
+        {/* NOTE: book.issued is the Gutenberg upload date, NOT the original publication year — do not display it */}
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <User className="w-3 h-3 shrink-0" />
+          <p className="line-clamp-1 text-xs">{author}</p>
         </div>
       </div>
     </div>

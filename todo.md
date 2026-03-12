@@ -71,3 +71,5 @@
 - [x] BookCard: Footer zeigt Tags statt Vorschautext; Overlay nur Zusammenfassungstext (~2/3 Coverfläche), keine Tags im Overlay
 - [x] BookCard: 150ms Debounce auf Hover-State gegen Flackern beim schnellen Scrollen
 - [x] BookCard: Jahreszahl im Footer statt Tags; Tags ins Hover-Overlay verschoben
+- [x] Bug: Erscheinungsjahr zeigt immer 2026 statt echtem Jahr — issued ist Gutenberg-Upload-Datum
+- [x] Jahr (issued) aus BookCard, Catalog, BookDetail und BrowseMode entfernt; Code-Kommentar hinterlassen

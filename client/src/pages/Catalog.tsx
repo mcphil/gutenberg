@@ -160,11 +160,7 @@ function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
           {book.title}
         </h3>
         <p className="text-xs text-muted-foreground mb-1.5">{author}</p>
-        {book.issued && (
-          <p className="text-xs text-muted-foreground mb-1.5">
-            {book.issued.substring(0, 4)}
-          </p>
-        )}
+        {/* NOTE: book.issued is the Gutenberg upload date, NOT the original publication year — do not display it */}
 
         {/* Summary — fades in on hover */}
         <div

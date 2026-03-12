@@ -139,12 +139,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
             </div>
           )}
 
-          {/* Year */}
-          {book.issued && (
-            <div className="flex items-center gap-2 text-muted-foreground mt-2 mb-4">
-              <span className="text-sm">{book.issued.substring(0, 4)}</span>
-            </div>
-          )}
+          {/* NOTE: book.issued is the Gutenberg upload date, NOT the original publication year — do not display it */}
 
           {/* Subjects */}
           {subjects.length > 0 && (
