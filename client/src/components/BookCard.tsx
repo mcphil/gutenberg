@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { BookOpen, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
@@ -15,9 +15,22 @@ interface BookCardProps {
 export function BookCard({ book, shortSummary: propSummary, onClick, compact = false }: BookCardProps) {
   const [imgError, setImgError] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
   const subjects = parseSubjects(book.subjects);
+
+  const handleMouseEnter = useCallback(() => {
+    hoverTimer.current = setTimeout(() => setHovered(true), 150);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimer.current) {
+      clearTimeout(hoverTimer.current);
+      hoverTimer.current = null;
+    }
+    setHovered(false);
+  }, []);
 
   // Fetch summary on first hover, cached indefinitely
   const { data: cachedSummary } = trpc.summaries.getCached.useQuery(
@@ -35,8 +48,8 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick?.()}
       aria-label={`${book.title} von ${author}`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {/* Cover */}
       <div className="relative overflow-hidden bg-muted" style={{ aspectRatio: "2/3" }}>

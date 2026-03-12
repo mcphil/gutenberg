@@ -69,3 +69,4 @@
 - [x] Hover-Overlay auf Buchkarten: Zeigt Kurzzusammenfassung beim Hovern (Grid: Overlay auf Cover, Liste: Fade-in unter Metadaten)
 - [x] Grid: 5 Spalten statt 6 auf Desktop; Vorschausatz immer sichtbar im Footer; Hover nutzt gesamte Coverfläche für mehr Text (kein Titel/Autor im Overlay)
 - [x] BookCard: Footer zeigt Tags statt Vorschautext; Overlay nur Zusammenfassungstext (~2/3 Coverfläche), keine Tags im Overlay
+- [x] BookCard: 150ms Debounce auf Hover-State gegen Flackern beim schnellen Scrollen
