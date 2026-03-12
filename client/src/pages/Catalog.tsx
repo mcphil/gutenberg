@@ -136,7 +136,7 @@ function ListRow({ book, onClick }: { book: GutenbergBook; onClick: () => void }
           <img
             src={coverUrl}
             alt={`Cover: ${book.title}`}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             loading="lazy"
             onError={() => setImgError(true)}
           />

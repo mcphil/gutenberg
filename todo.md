@@ -96,3 +96,4 @@
 - [x] Englische Themen-Labels (subjects) im FilterPanel durch FILTER_TOPICS aus shared/gutenberg.ts ersetzt
 - [x] translateSubject() Funktion in shared/gutenberg.ts — übersetzt englische subjects für Buchkarten, Detailseite und Browse-Modus
 - [x] Kein englischer Fallback-Text mehr in der UI
+- [x] Buchcover nie anschneiden — object-contain überall statt object-cover (BookCard, ListRow, BookDetail, BrowseMode, Home)

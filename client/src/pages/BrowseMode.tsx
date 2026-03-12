@@ -262,7 +262,7 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
             <img
               src={coverUrl}
               alt={`Cover: ${book.title}`}
-              className="w-full h-full object-contain bg-muted"
+              className="w-full h-full object-contain"
               onError={() => setImgError(true)}
             />
           ) : (

@@ -92,12 +92,12 @@ export default function BookDetail({ bookId }: BookDetailProps) {
       <div className="flex flex-col sm:flex-row gap-8">
         {/* Cover */}
         <div className="shrink-0 sm:w-48 md:w-56">
-          <div className="rounded-lg overflow-hidden shadow-lg border border-border" style={{ aspectRatio: "2/3" }}>
+          <div className="rounded-lg overflow-hidden shadow-lg border border-border bg-muted" style={{ aspectRatio: "2/3" }}>
             {!imgError ? (
               <img
                 src={coverUrl}
                 alt={`Cover: ${book.title}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 onError={() => setImgError(true)}
               />
             ) : (

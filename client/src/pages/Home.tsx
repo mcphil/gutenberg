@@ -97,12 +97,13 @@ export default function Home() {
                   style={{ minWidth: 220 }}
                 >
                   {p.coverUrl && (
-                    <img
-                      src={p.coverUrl}
-                      alt=""
-                      className="w-10 rounded shrink-0"
-                      style={{ aspectRatio: "2/3", objectFit: "cover" }}
-                    />
+                    <div className="w-10 shrink-0 rounded overflow-hidden bg-muted" style={{ aspectRatio: "2/3" }}>
+                      <img
+                        src={p.coverUrl}
+                        alt=""
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
                   )}
                   <div className="min-w-0">
                     <p className="text-xs font-medium line-clamp-2 text-foreground"

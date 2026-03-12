@@ -31,7 +31,7 @@ export function BookCard({ book, shortSummary, onClick, compact = false }: BookC
           <img
             src={coverUrl}
             alt={`Cover: ${book.title}`}
-            className="book-cover transition-transform duration-300 group-hover:scale-105"
+            className="absolute inset-0 w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
             onError={() => setImgError(true)}
           />
