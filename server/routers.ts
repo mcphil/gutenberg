@@ -3,7 +3,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { getBookSummary, listBooks, getBookById, getRandomBooks, getTotalBookCount, getRelatedBooks } from "./db";
+import { getBookSummary, listBooks, getBookById, getRandomBooks, getTotalBookCount, getRelatedBooks, getBooksByAuthor } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -65,6 +65,13 @@ export const appRouter = router({
       }))
       .query(async ({ input }) => {
         return getRelatedBooks(input.gutenbergId, input.count);
+      }),
+
+    // Get all books by a given author name
+    byAuthor: publicProcedure
+      .input(z.object({ authorName: z.string().min(1) }))
+      .query(async ({ input }) => {
+        return getBooksByAuthor(input.authorName);
       }),
   }),
 

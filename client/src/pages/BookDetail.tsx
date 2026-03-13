@@ -128,14 +128,18 @@ export default function BookDetail({ bookId }: BookDetailProps) {
             {book.title}
           </h1>
 
-          {/* Authors */}
+          {/* Authors — clickable, navigate to author page */}
           {authors.length > 0 ? authors.map((author) => (
             <div key={author.name} className="flex items-center gap-2 text-muted-foreground mb-1">
               <User className="w-4 h-4 shrink-0" />
-              <span className="text-sm">
+              <button
+                className="text-sm text-left hover:text-foreground hover:underline transition-colors cursor-pointer"
+                onClick={() => navigate(`/author/${encodeURIComponent(author.name)}`)}
+                title={`Alle Werke von ${author.displayName}`}
+              >
                 {author.displayName}{" "}
-                <span className="text-xs">{getAuthorYears(author)}</span>
-              </span>
+                <span className="text-xs text-muted-foreground">{getAuthorYears(author)}</span>
+              </button>
             </div>
           )) : (
             <div className="flex items-center gap-2 text-muted-foreground mb-1">

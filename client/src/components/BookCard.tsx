@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback } from "react";
+import { useLocation } from "wouter";
 import { BookOpen, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import type { LocalBook } from "../../../shared/gutenberg";
-import { getAuthorDisplay, getCoverUrl, parseSubjects, translateSubject } from "../../../shared/gutenberg";
+import { getAuthorDisplay, getCoverUrl, parseSubjects, translateSubject, parseAuthors } from "../../../shared/gutenberg";
 
 interface BookCardProps {
   book: LocalBook;
@@ -16,9 +17,11 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
   const [imgError, setImgError] = useState(false);
   const [hovered, setHovered] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [, navigate] = useLocation();
   const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
   const subjects = parseSubjects(book.subjects);
+  const parsedAuthors = parseAuthors(book.authors);
 
   const handleMouseEnter = useCallback(() => {
     hoverTimer.current = setTimeout(() => setHovered(true), 150);
@@ -117,7 +120,20 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
         {/* NOTE: book.issued is the Gutenberg upload date, NOT the original publication year — do not display it */}
         <div className="flex items-center gap-1 text-muted-foreground">
           <User className="w-3 h-3 shrink-0" />
-          <p className="line-clamp-1 text-xs">{author}</p>
+          {parsedAuthors.length > 0 ? (
+            <button
+              className="line-clamp-1 text-xs text-left hover:text-foreground hover:underline transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/author/${encodeURIComponent(parsedAuthors[0].name)}`);
+              }}
+              title={`Alle Werke von ${parsedAuthors[0].displayName}`}
+            >
+              {author}
+            </button>
+          ) : (
+            <p className="line-clamp-1 text-xs">{author}</p>
+          )}
         </div>
       </div>
     </div>

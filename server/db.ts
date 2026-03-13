@@ -228,3 +228,23 @@ export async function getRelatedBooks(gutenbergId: number, count = 5): Promise<B
 
   return (rows as unknown as Book[]) ?? [];
 }
+
+// ─── Author queries ───────────────────────────────────────────────────────────
+/**
+ * Find all books by a given author name (partial match on the raw authors field).
+ * The name can be in "Firstname Lastname" or "Lastname, Firstname" form — we
+ * search for the last-name part to cover both orderings.
+ */
+export async function getBooksByAuthor(authorName: string): Promise<Book[]> {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Use the full name as a LIKE term so both "Kafka, Franz" and "Franz Kafka" match
+  const term = `%${authorName}%`;
+  const [rows] = await db.execute(
+    sql`SELECT * FROM books
+        WHERE type = 'Text' AND ${books.authors} LIKE ${term}
+        ORDER BY ${books.title} ASC`
+  );
+  return (rows as unknown as Book[]) ?? [];
+}

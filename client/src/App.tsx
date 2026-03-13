@@ -11,6 +11,7 @@ import BookDetail from "./pages/BookDetail";
 import Reader from "./pages/Reader";
 import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
+import AuthorPage from "./pages/AuthorPage";
 
 function BookDetailRoute() {
   const params = useParams<{ id: string }>();
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/book/:id" component={BookDetailRoute} />
       <Route path="/read/:id" component={ReaderRoute} />
+      <Route path="/author/:name" component={AuthorPage} />
       <Route path="/impressum" component={Impressum} />
       <Route path="/datenschutz" component={Datenschutz} />
       <Route path="/404" component={NotFound} />
