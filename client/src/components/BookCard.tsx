@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { BookOpen, User } from "lucide-react";
+import { BookOpen, User, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import type { LocalBook } from "../../../shared/gutenberg";
-import { getAuthorDisplay, getCoverUrl, parseSubjects, translateSubject, parseAuthors } from "../../../shared/gutenberg";
+import { getAuthorDisplay, getCoverUrl, parseSubjects, translateSubject, parseAuthors, isCopyrightProtectedDE } from "../../../shared/gutenberg";
 
 interface BookCardProps {
   book: LocalBook;
@@ -42,6 +42,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
   );
 
   const shortSummary = propSummary ?? cachedSummary?.shortSummary ?? null;
+  const isProtected = isCopyrightProtectedDE(book.authors);
 
   return (
     <div
@@ -79,10 +80,16 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
           }}
         >
           <div className="absolute bottom-0 left-0 right-0 p-3" style={{ maxHeight: "67%" }}>
+            {isProtected && (
+              <div className="flex items-center gap-1 mb-2">
+                <Lock className="w-3 h-3 text-amber-400/80" />
+                <span className="text-amber-400/80 text-xs">Urheberrechtlich geschützt (DE)</span>
+              </div>
+            )}
             {shortSummary ? (
               <p className="text-white/90 text-xs leading-relaxed overflow-hidden" style={{
                 display: "-webkit-box",
-                WebkitLineClamp: 6,
+                WebkitLineClamp: isProtected ? 4 : 6,
                 WebkitBoxOrient: "vertical",
               }}>
                 {shortSummary}

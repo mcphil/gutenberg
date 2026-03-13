@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/popover";
 import { trpc } from "@/lib/trpc";
 import { useReadingProgress, useBookmarks, useReaderPreferences } from "@/hooks/useLocalStorage";
-import { getEpubProxyUrl, getCoverUrlById } from "../../../shared/gutenberg";
+import { getEpubProxyUrl, getCoverUrlById, isCopyrightProtectedDE } from "../../../shared/gutenberg";
 
 interface ReaderProps {
   bookId: number;
@@ -75,8 +75,12 @@ export default function Reader({ bookId }: ReaderProps) {
     if (book) {
       setBookTitle(book.title);
       setBookCover(getCoverUrlById(bookId));
+      // § 64 UrhG: redirect to book detail if still under copyright in Germany
+      if (isCopyrightProtectedDE(book.authors)) {
+        navigate(`/book/${bookId}`);
+      }
     }
-  }, [book, bookId]);
+  }, [book, bookId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Build CSS injected into the EPUB iframe
   const getEpubStyles = useCallback(() => {

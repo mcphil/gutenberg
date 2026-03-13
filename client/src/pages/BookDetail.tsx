@@ -7,7 +7,8 @@ import { BookCard, BookCardSkeleton } from "@/components/BookCard";
 import { trpc } from "@/lib/trpc";
 import {
   getAuthorDisplay, parseAuthors, getAuthorYears, getCoverUrl,
-  parseSubjects, parseBookshelves, translateSubject, FILTER_TOPICS
+  parseSubjects, parseBookshelves, translateSubject, FILTER_TOPICS,
+  isCopyrightProtectedDE
 } from "../../../shared/gutenberg";
 import { useRecentBooks, useReadingProgress } from "@/hooks/useLocalStorage";
 
@@ -66,6 +67,8 @@ export default function BookDetail({ bookId }: BookDetailProps) {
   const authors = parseAuthors(book.authors);
   const subjects = parseSubjects(book.subjects);
   const bookshelves = parseBookshelves(book.bookshelves);
+  // § 64 UrhG: check if the book is still under copyright in Germany
+  const isProtected = isCopyrightProtectedDE(book.authors);
 
   return (
     <div className="container py-6 max-w-4xl mx-auto">
@@ -206,24 +209,47 @@ export default function BookDetail({ bookId }: BookDetailProps) {
           </div>
 
           {/* CTA */}
-          <div className="flex flex-wrap gap-3">
-            <Button
-              size="lg"
-              className="gap-2"
-              onClick={() => navigate(`/read/${book.gutenbergId}`)}
-            >
-              <BookOpen className="w-5 h-5" />
-              {progress ? "Weiterlesen" : "Jetzt lesen"}
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="gap-2"
-              onClick={() => window.open(`https://www.gutenberg.org/ebooks/${book.gutenbergId}`, "_blank")}
-            >
-              <Download className="w-5 h-5" />
-              Auf Gutenberg.org
-            </Button>
+          <div className="flex flex-wrap gap-3 items-start">
+            {isProtected ? (
+              <div className="w-full">
+                <div className="flex flex-wrap gap-3 mb-3">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="gap-2"
+                    onClick={() => window.open(`https://www.gutenberg.org/ebooks/${book.gutenbergId}`, "_blank")}
+                  >
+                    <Download className="w-5 h-5" />
+                    Auf Gutenberg.org
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed max-w-md">
+                  <span className="font-medium">Hinweis:</span> Dieses Werk ist in Deutschland noch urheberrechtlich geschützt
+                  (§ 64 UrhG — 70 Jahre nach dem Tod des Autors). Eine direkte Lesefunktion ist daher nicht verfügbar.
+                  Das Werk kann über Project Gutenberg aufgerufen werden, das US-amerikanischem Recht unterliegt.
+                </p>
+              </div>
+            ) : (
+              <>
+                <Button
+                  size="lg"
+                  className="gap-2"
+                  onClick={() => navigate(`/read/${book.gutenbergId}`)}
+                >
+                  <BookOpen className="w-5 h-5" />
+                  {progress ? "Weiterlesen" : "Jetzt lesen"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="gap-2"
+                  onClick={() => window.open(`https://www.gutenberg.org/ebooks/${book.gutenbergId}`, "_blank")}
+                >
+                  <Download className="w-5 h-5" />
+                  Auf Gutenberg.org
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

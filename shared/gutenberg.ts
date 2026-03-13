@@ -165,6 +165,45 @@ export function getEpubProxyUrl(gutenbergId: number): string {
   return `/api/epubs/${gutenbergId}.epub`;
 }
 
+// ─── German copyright check (§ 64 UrhG) ────────────────────────────────────
+
+/**
+ * Returns true if the book is still under copyright in Germany.
+ *
+ * German law (§ 64 UrhG): copyright expires 70 years after the author's death.
+ * A book is protected if ANY primary author died within the last 70 years.
+ *
+ * Conservative rule for unknown death years:
+ *   - If no death year is found for any author, we treat the book as
+ *     PROTECTED (unknown = potentially still in copyright).
+ *   - Editors/Translators/Contributors in [Role] brackets are excluded from
+ *     the check — only the primary author(s) matter.
+ *
+ * @param authorsStr  Raw CSV authors string from the books table
+ * @param referenceYear  Year to check against (defaults to current year)
+ */
+export function isCopyrightProtectedDE(
+  authorsStr: string | null,
+  referenceYear: number = new Date().getFullYear()
+): boolean {
+  if (!authorsStr) return true; // unknown = conservative: assume protected
+
+  const authors = parseAuthors(authorsStr);
+  // Only consider primary authors (no [Translator], [Editor], [Contributor] etc.)
+  const primaryAuthors = authors.filter(
+    (a) => !a.displayName.match(/\[(Translator|Editor|Contributor|Illustrator|Compiler|Annotator|Commentator|Adapter|Arranger|Foreword|Introduction|Preface)\]/i)
+  );
+
+  if (primaryAuthors.length === 0) return true; // no primary author found = protected
+
+  for (const author of primaryAuthors) {
+    if (author.deathYear === null) return true; // unknown death year = protected
+    if (referenceYear - author.deathYear < 70) return true; // died within 70 years
+  }
+
+  return false; // all primary authors died 70+ years ago = public domain in Germany
+}
+
 // ─── Subject translation map (English → German) ──────────────────────────────
 // Gutenberg subjects from pg_catalog.csv are in English; we translate for display.
 
