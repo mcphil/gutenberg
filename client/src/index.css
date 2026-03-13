@@ -181,22 +181,33 @@
   .reader-sepia { background: var(--reader-bg-sepia); color: var(--reader-text-sepia); }
   .reader-dark  { background: var(--reader-bg-dark);  color: var(--reader-text-dark);  }
 
-  /* ── Browse Swipe ──────────────────────────────────────── */
-  .browse-card {
-    position: absolute;
-    inset: 0;
+  /* ── Browse Swipe (scroll-snap) ───────────────────────────── */
+
+  /* Outer scroll container: full-screen, one slide per screen */
+  .browse-scroll-container {
+    width: 100%;
+    height: 100%;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    /* Hide scrollbar visually */
+    scrollbar-width: none;
+  }
+  .browse-scroll-container::-webkit-scrollbar { display: none; }
+
+  /* Each slide occupies exactly one viewport height */
+  .browse-slide {
+    width: 100%;
+    height: 100vh;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 3.5rem 1rem 4rem; /* top: clear topbar; bottom: clear dots */
-    transition: transform 0.34s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.34s ease;
-    will-change: transform, opacity;
+    padding: 3.5rem 1rem 4rem;
   }
-  .browse-card.entering-from-bottom { transform: translateY(100%); opacity: 0; }
-  .browse-card.entering-from-top    { transform: translateY(-100%); opacity: 0; }
-  .browse-card.active               { transform: translateY(0); opacity: 1; }
-  .browse-card.exiting-to-top       { transform: translateY(-100%); opacity: 0; }
-  .browse-card.exiting-to-bottom    { transform: translateY(100%); opacity: 0; }
 
   /* Inner layout: portrait = column, landscape/wide = row */
   .browse-inner {
@@ -236,12 +247,8 @@
     width: 100%;
     text-align: center;
   }
-  .browse-info .flex.gap-3 {
-    justify-content: center;
-  }
-  .browse-info .flex.flex-wrap {
-    justify-content: center;
-  }
+  .browse-info .flex.gap-3 { justify-content: center; }
+  .browse-info .flex.flex-wrap { justify-content: center; }
 
   /* Landscape / wide screen: side-by-side */
   @media (orientation: landscape) and (min-width: 640px) {
@@ -265,12 +272,8 @@
       overflow-y: auto;
       max-height: 70vh;
     }
-    .browse-info .flex.gap-3 {
-      justify-content: flex-start;
-    }
-    .browse-info .flex.flex-wrap {
-      justify-content: flex-start;
-    }
+    .browse-info .flex.gap-3 { justify-content: flex-start; }
+    .browse-info .flex.flex-wrap { justify-content: flex-start; }
   }
 
   /* ── Skeleton shimmer ──────────────────────────────────── */
