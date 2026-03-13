@@ -56,7 +56,7 @@ export default function Home() {
 
       <main className="container">
         {/* Hero / Welcome — only shown when no search */}
-        {!searchQuery && recentProgress.length === 0 && (
+        {!searchQuery && (
           <div className="py-10 text-center border-b border-border mb-2">
             <div className="flex items-center justify-center gap-2 mb-3">
               <BookOpen className="w-7 h-7 text-primary" />
