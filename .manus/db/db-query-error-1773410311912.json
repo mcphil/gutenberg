@@ -1,0 +1,8 @@
+{
+  "query": "ALTER TABLE `books` ADD `copyrightProtectedUntil` int;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute ALTER TABLE `books` ADD `copyrightProtectedUntil` int;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1060 (42S21) at line 1: Duplicate column name 'copyrightProtectedUntil'"
+  ]
+}
