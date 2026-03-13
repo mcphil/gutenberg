@@ -1,10 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ReactReader, ReactReaderStyle } from "react-reader";
-import type { Contents, Rendition } from "epubjs";
+import type { Rendition } from "epubjs";
 import {
   ArrowLeft, Bookmark, BookmarkCheck, ChevronLeft, ChevronRight,
-  Maximize2, Minimize2, Minus, Plus, Settings,
+  Maximize2, Minimize2,
   Type, AlignJustify, BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,8 +23,8 @@ interface ReaderProps {
 type ReaderTheme = "light" | "sepia" | "dark";
 
 const THEME_STYLES: Record<ReaderTheme, {
-  bg: string;       // column / page background
-  scrollBg: string; // outer margin background in scroll mode (slightly darker)
+  bg: string;
+  scrollBg: string;
   text: string;
   label: string;
 }> = {
@@ -39,6 +39,8 @@ export default function Reader({ bookId }: ReaderProps) {
   const { saveProgress, getProgress } = useReadingProgress();
   const { addBookmark, getBookmarksForBook, removeBookmark } = useBookmarks();
 
+  // location is only used for initial positioning; in scroll mode we don't
+  // feed it back from the relocated event to avoid the jump-back loop.
   const [location, setLocation] = useState<string | number>(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -49,30 +51,25 @@ export default function Reader({ bookId }: ReaderProps) {
 
   const renditionRef = useRef<Rendition | null>(null);
   const locationRef = useRef<string | number>(0);
+  // Prevents the scroll-restore from running more than once per mount
+  const scrollRestoredRef = useRef(false);
+  // Debounce timer for scroll-position saving
   const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const isScrollMode = prefs.readingMode === "scroll";
 
   const { data: book } = trpc.books.byId.useQuery({ id: bookId });
 
-  // Load saved position
+  // Load saved position once on mount
   useEffect(() => {
     const saved = getProgress(bookId);
     if (saved?.cfi) {
       setLocation(saved.cfi);
       locationRef.current = saved.cfi;
     }
-  }, [bookId]);
-
-  // Helper: get the scrollable document element inside the EPUB iframe
-  const getScrollDoc = useCallback((): Element | null => {
-    try {
-      const contents = renditionRef.current?.getContents();
-      const doc = (contents as unknown as Array<{ document: Document }>)?.[0]?.document;
-      return doc?.scrollingElement ?? doc?.documentElement ?? null;
-    } catch {
-      return null;
-    }
-  }, []);
+    // Reset restore flag when bookId changes
+    scrollRestoredRef.current = false;
+  }, [bookId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (book) {
@@ -81,7 +78,7 @@ export default function Reader({ bookId }: ReaderProps) {
     }
   }, [book, bookId]);
 
-  // Build the CSS applied inside the EPUB iframe
+  // Build CSS injected into the EPUB iframe
   const getEpubStyles = useCallback(() => {
     const theme = THEME_STYLES[prefs.theme];
     const fontFamily =
@@ -97,16 +94,12 @@ export default function Reader({ bookId }: ReaderProps) {
         "font-family": fontFamily,
         "font-size": `${prefs.fontSize}px !important`,
         "line-height": `${prefs.lineHeight} !important`,
-        // 100ch centres the column; in paginated mode use the user-defined maxWidth
         "max-width": isScroll ? "100ch" : `${prefs.maxWidth}px`,
         margin: "0 auto",
         padding: isScroll ? "3rem 2rem 6rem" : "2rem 1.5rem",
-        // Subtle box-shadow gives the column a card-like lift in scroll mode
         "box-shadow": isScroll ? "0 0 0 1px rgba(0,0,0,0.06), 0 2px 24px rgba(0,0,0,0.08)" : "none",
       },
-      // Outer html element gets the darker margin colour in scroll mode
       html: isScroll ? { background: theme.scrollBg } : {},
-
       p: {
         "font-size": `${prefs.fontSize}px !important`,
         "line-height": `${prefs.lineHeight} !important`,
@@ -137,76 +130,84 @@ export default function Reader({ bookId }: ReaderProps) {
         rendition.book.locations.generate(1024).catch(() => {});
       }).catch(() => {});
 
-      rendition.on("relocated", (location: { start: { cfi: string; percentage: number }; atEnd: boolean }) => {
-        const cfi = location.start.cfi;
-        const pct = location.start.percentage ?? 0;
+      rendition.on("relocated", (loc: { start: { cfi: string; percentage: number } }) => {
+        const cfi = loc.start.cfi;
+        const pct = loc.start.percentage ?? 0;
         locationRef.current = cfi;
-        setCurrentPage(Math.round(pct * 100));
-        // In scroll mode we capture scrollTop after a short delay so the
-        // browser has finished rendering the new position
-        if (isScrollMode) {
-          setTimeout(() => {
-            const scrollEl = getScrollDoc();
-            const st = scrollEl?.scrollTop ?? 0;
-            saveProgress(bookId, cfi, pct, bookTitle, bookCover, st);
-          }, 120);
-        } else {
+
+        // In scroll mode: do NOT call setLocation — that would cause ReactReader
+        // to jump back to the CFI on every scroll step.
+        // In paginated mode: update location so prev/next arrows work correctly.
+        if (!isScrollMode) {
+          setCurrentPage(Math.round(pct * 100));
           saveProgress(bookId, cfi, pct, bookTitle, bookCover);
         }
+
         const bms = getBookmarksForBook(bookId);
         setIsBookmarked(bms.some((b) => b.cfi === cfi));
       });
 
-      // In scroll mode: also attach a throttled scroll listener for finer
-      // position granularity (saves every 2 s while scrolling)
-      rendition.on("rendered", () => {
-        if (!isScrollMode) return;
-        try {
-          const contents = rendition.getContents();
-          const doc = (contents as unknown as Array<{ document: Document }>)?.[0]?.document;
-          const scrollEl = doc?.scrollingElement ?? doc?.documentElement;
-          if (!scrollEl) return;
+      // Scroll mode: attach scroll listener once after first render
+      if (isScrollMode) {
+        const onRendered = () => {
+          try {
+            const contents = rendition.getContents();
+            const doc = (contents as unknown as Array<{ document: Document }>)?.[0]?.document;
+            const scrollEl = doc?.scrollingElement ?? doc?.documentElement;
+            if (!scrollEl) return;
 
-          // Restore saved scrollTop after the first render
-          const saved = getProgress(bookId);
-          if (saved?.scrollTop && saved.scrollTop > 0) {
-            setTimeout(() => { scrollEl.scrollTop = saved.scrollTop!; }, 150);
+            // Restore saved scrollTop exactly once
+            if (!scrollRestoredRef.current) {
+              scrollRestoredRef.current = true;
+              const saved = getProgress(bookId);
+              if (saved?.scrollTop && saved.scrollTop > 0) {
+                setTimeout(() => {
+                  scrollEl.scrollTop = saved.scrollTop!;
+                }, 200);
+              }
+            }
+
+            // Throttled scroll → save progress every 2 s
+            const onScroll = () => {
+              if (scrollSaveTimerRef.current) clearTimeout(scrollSaveTimerRef.current);
+              scrollSaveTimerRef.current = setTimeout(() => {
+                const st = scrollEl.scrollTop;
+                const cfi = typeof locationRef.current === "string" ? locationRef.current : "";
+                const pct = scrollEl.scrollHeight > 0 ? st / scrollEl.scrollHeight : 0;
+                setCurrentPage(Math.round(pct * 100));
+                saveProgress(bookId, cfi, pct, bookTitle, bookCover, st);
+              }, 2000);
+            };
+
+            // Remove any previously attached listener before adding a new one
+            scrollEl.removeEventListener("scroll", onScroll);
+            scrollEl.addEventListener("scroll", onScroll, { passive: true });
+          } catch {
+            // ignore cross-origin or timing errors
           }
+        };
 
-          const onScroll = () => {
-            if (scrollSaveTimerRef.current) clearTimeout(scrollSaveTimerRef.current);
-            scrollSaveTimerRef.current = setTimeout(() => {
-              const st = scrollEl.scrollTop;
-              const cfi = typeof locationRef.current === "string" ? locationRef.current : "";
-              if (!cfi) return;
-              // Estimate percentage from scrollTop / scrollHeight
-              const pct = scrollEl.scrollHeight > 0
-                ? st / scrollEl.scrollHeight
-                : 0;
-              setCurrentPage(Math.round(pct * 100));
-              saveProgress(bookId, cfi, pct, bookTitle, bookCover, st);
-            }, 2000);
-          };
-          scrollEl.addEventListener("scroll", onScroll, { passive: true });
-        } catch {
-          // ignore
-        }
-      });
+        rendition.on("rendered", onRendered);
+      }
     },
-    [applyStyles, bookId, bookTitle, bookCover, saveProgress, getBookmarksForBook, isScrollMode, getScrollDoc, getProgress]
+    [applyStyles, bookId, bookTitle, bookCover, saveProgress, getBookmarksForBook, isScrollMode, getProgress]
   );
 
-  // Re-apply styles when preferences change
+  // Re-apply styles when preferences change (font, theme, size…)
   useEffect(() => {
     if (renditionRef.current) {
       applyStyles(renditionRef.current);
     }
   }, [prefs, applyStyles]);
 
+  // In paginated mode: locationChanged feeds back into state for prev/next nav
+  // In scroll mode: we only update the ref, never the state, to prevent jumps
   const handleLocationChange = useCallback((loc: string | number) => {
-    setLocation(loc);
     locationRef.current = loc;
-  }, []);
+    if (!isScrollMode) {
+      setLocation(loc);
+    }
+  }, [isScrollMode]);
 
   const handleToggleBookmark = useCallback(() => {
     const cfi = typeof locationRef.current === "string" ? locationRef.current : "";
@@ -233,17 +234,15 @@ export default function Reader({ bookId }: ReaderProps) {
   }, []);
 
   const handleToggleMode = useCallback(() => {
+    // Reset restore flag so the new mode can restore its own position
+    scrollRestoredRef.current = false;
     updatePref("readingMode", prefs.readingMode === "scroll" ? "paginated" : "scroll");
-    // Reset location to current CFI so the new mode opens at the same position
-    const cfi = locationRef.current;
-    if (cfi) {
-      setTimeout(() => setLocation(cfi), 50);
-    }
   }, [prefs.readingMode, updatePref]);
 
   const epubUrl = getEpubProxyUrl(bookId);
   const theme = THEME_STYLES[prefs.theme];
   const isScroll = prefs.readingMode === "scroll";
+  const outerBg = isScroll ? theme.scrollBg : theme.bg;
 
   if (!epubUrl && book) {
     return (
@@ -256,10 +255,6 @@ export default function Reader({ bookId }: ReaderProps) {
     );
   }
 
-  // In scroll mode the outer container uses the darker margin colour;
-  // the lighter column bg is applied inside the EPUB iframe via getEpubStyles()
-  const outerBg = isScroll ? theme.scrollBg : theme.bg;
-
   const readerStyle: typeof ReactReaderStyle = {
     ...ReactReaderStyle,
     readerArea: {
@@ -271,7 +266,9 @@ export default function Reader({ bookId }: ReaderProps) {
       ...ReactReaderStyle.container,
       background: outerBg,
     },
-    titleArea: { display: "none" },
+    titleArea: {
+      display: "none",
+    },
     tocArea: {
       ...ReactReaderStyle.tocArea,
       background: prefs.theme === "dark" ? "#252320" : "#F5F0E8",
@@ -284,7 +281,6 @@ export default function Reader({ bookId }: ReaderProps) {
       ...ReactReaderStyle.tocButton,
       color: theme.text,
     },
-    // Hide prev/next arrows in scroll mode — navigation is via scrolling
     arrow: {
       ...ReactReaderStyle.arrow,
       color: isScroll ? "transparent" : theme.text,
@@ -301,7 +297,7 @@ export default function Reader({ bookId }: ReaderProps) {
       className="flex flex-col"
       style={{ height: "100dvh", background: outerBg, color: theme.text }}
     >
-      {/* Reader toolbar */}
+      {/* Toolbar */}
       <div
         className="flex items-center gap-2 px-3 py-2 border-b shrink-0"
         style={{
@@ -309,11 +305,8 @@ export default function Reader({ bookId }: ReaderProps) {
           borderColor: prefs.theme === "dark" ? "#3A3630" : "#E0D8CC",
         }}
       >
-        {/* Back */}
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
+          variant="ghost" size="icon" className="h-8 w-8 shrink-0"
           style={{ color: theme.text }}
           onClick={() => navigate(`/book/${bookId}`)}
           aria-label="Zurück"
@@ -321,7 +314,18 @@ export default function Reader({ bookId }: ReaderProps) {
           <ArrowLeft className="w-4 h-4" />
         </Button>
 
-        {/* Title */}
+        {/* Prev arrow (paginated only) */}
+        {!isScroll && (
+          <Button
+            variant="ghost" size="icon" className="h-8 w-8 shrink-0"
+            style={{ color: theme.text }}
+            onClick={() => renditionRef.current?.prev()}
+            aria-label="Vorherige Seite"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+        )}
+
         <p
           className="flex-1 text-sm font-medium truncate"
           style={{ fontFamily: "Lora, Georgia, serif", color: theme.text }}
@@ -329,16 +333,25 @@ export default function Reader({ bookId }: ReaderProps) {
           {bookTitle || "Lädt…"}
         </p>
 
-        {/* Progress */}
         <span className="text-xs shrink-0" style={{ color: `${theme.text}99` }}>
           {currentPage}%
         </span>
 
-        {/* Mode toggle: Scroll ↔ Paginated */}
+        {/* Next arrow (paginated only) */}
+        {!isScroll && (
+          <Button
+            variant="ghost" size="icon" className="h-8 w-8 shrink-0"
+            style={{ color: theme.text }}
+            onClick={() => renditionRef.current?.next()}
+            aria-label="Nächste Seite"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        )}
+
+        {/* Mode toggle */}
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
+          variant="ghost" size="icon" className="h-8 w-8 shrink-0"
           style={{ color: theme.text }}
           onClick={handleToggleMode}
           title={isScroll ? "Zu Blätter-Modus wechseln" : "Zu Scroll-Modus wechseln"}
@@ -349,9 +362,7 @@ export default function Reader({ bookId }: ReaderProps) {
 
         {/* Bookmark */}
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0"
+          variant="ghost" size="icon" className="h-8 w-8 shrink-0"
           style={{ color: theme.text }}
           onClick={handleToggleBookmark}
           aria-label={isBookmarked ? "Lesezeichen entfernen" : "Lesezeichen setzen"}
@@ -363,9 +374,7 @@ export default function Reader({ bookId }: ReaderProps) {
         <Popover open={showSettings} onOpenChange={setShowSettings}>
           <PopoverTrigger asChild>
             <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
+              variant="ghost" size="icon" className="h-8 w-8 shrink-0"
               style={{ color: theme.text }}
               aria-label="Leseeinstellungen"
             >
@@ -379,9 +388,7 @@ export default function Reader({ bookId }: ReaderProps) {
 
         {/* Fullscreen */}
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 shrink-0 hidden sm:flex"
+          variant="ghost" size="icon" className="h-8 w-8 shrink-0 hidden sm:flex"
           style={{ color: theme.text }}
           onClick={handleFullscreen}
           aria-label={isFullscreen ? "Vollbild beenden" : "Vollbild"}
@@ -405,7 +412,7 @@ export default function Reader({ bookId }: ReaderProps) {
       <div className="flex-1 min-h-0">
         {epubUrl && (
           <ReactReader
-            key={prefs.readingMode}  // force remount when mode changes
+            key={prefs.readingMode}
             url={epubUrl}
             location={location}
             locationChanged={handleLocationChange}
@@ -413,7 +420,7 @@ export default function Reader({ bookId }: ReaderProps) {
             readerStyles={readerStyle}
             epubOptions={{
               flow: isScroll ? "scrolled-doc" : "paginated",
-              manager: isScroll ? "continuous" : "default",
+              // Do NOT use manager:"continuous" — it causes instability in react-reader
             }}
           />
         )}
@@ -437,19 +444,20 @@ function ReaderSettings({ prefs, updatePref }: ReaderSettingsProps) {
       <h3 className="font-semibold text-sm">Leseeinstellungen</h3>
 
       {/* Theme */}
-      <div>
-        <label className="text-xs text-muted-foreground font-medium mb-2 block">Design</label>
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Hintergrund</p>
         <div className="flex gap-2">
           {(["light", "sepia", "dark"] as const).map((t) => (
             <button
               key={t}
               onClick={() => updatePref("theme", t)}
-              className={`flex-1 h-8 rounded text-xs font-medium border-2 transition-all ${
-                prefs.theme === t ? "border-primary" : "border-transparent"
+              className={`flex-1 py-1.5 rounded text-xs font-medium border transition-all ${
+                prefs.theme === t ? "ring-2 ring-primary" : ""
               }`}
               style={{
                 background: THEME_STYLES[t].bg,
                 color: THEME_STYLES[t].text,
+                borderColor: THEME_STYLES[t].text + "33",
               }}
             >
               {THEME_STYLES[t].label}
@@ -459,111 +467,63 @@ function ReaderSettings({ prefs, updatePref }: ReaderSettingsProps) {
       </div>
 
       {/* Font family */}
-      <div>
-        <label className="text-xs text-muted-foreground font-medium mb-2 block">Schriftart</label>
+      <div className="space-y-2">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Schrift</p>
         <div className="flex gap-2">
-          <button
-            onClick={() => updatePref("fontFamily", "serif")}
-            className={`flex-1 h-8 rounded text-sm border-2 transition-all ${
-              prefs.fontFamily === "serif" ? "border-primary bg-primary/10" : "border-border"
-            }`}
-            style={{ fontFamily: "Merriweather, Georgia, serif" }}
-          >
-            Serif
-          </button>
-          <button
-            onClick={() => updatePref("fontFamily", "sans")}
-            className={`flex-1 h-8 rounded text-sm border-2 transition-all ${
-              prefs.fontFamily === "sans" ? "border-primary bg-primary/10" : "border-border"
-            }`}
-            style={{ fontFamily: "Inter, system-ui, sans-serif" }}
-          >
-            Sans-serif
-          </button>
+          {(["serif", "sans"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => updatePref("fontFamily", f)}
+              className={`flex-1 py-1.5 rounded text-xs border transition-all ${
+                prefs.fontFamily === f ? "ring-2 ring-primary bg-primary/10" : "bg-muted"
+              }`}
+              style={{ fontFamily: f === "serif" ? "Merriweather, Georgia, serif" : "Inter, system-ui, sans-serif" }}
+            >
+              {f === "serif" ? "Serif" : "Sans-Serif"}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Font size */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs text-muted-foreground font-medium">Schriftgröße</label>
-          <span className="text-xs font-mono">{prefs.fontSize}px</span>
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Schriftgröße</p>
+          <span className="text-xs text-muted-foreground">{prefs.fontSize}px</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => updatePref("fontSize", Math.max(12, prefs.fontSize - 1))}
-          >
-            <Minus className="w-3 h-3" />
-          </Button>
-          <Slider
-            value={[prefs.fontSize]}
-            min={12}
-            max={26}
-            step={1}
-            className="flex-1"
-            onValueChange={([v]) => updatePref("fontSize", v)}
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => updatePref("fontSize", Math.min(26, prefs.fontSize + 1))}
-          >
-            <Plus className="w-3 h-3" />
-          </Button>
-        </div>
+        <Slider
+          min={14} max={24} step={1}
+          value={[prefs.fontSize]}
+          onValueChange={([v]) => updatePref("fontSize", v)}
+        />
       </div>
 
       {/* Line height */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs text-muted-foreground font-medium">Zeilenabstand</label>
-          <span className="text-xs font-mono">{prefs.lineHeight.toFixed(2)}</span>
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Zeilenabstand</p>
+          <span className="text-xs text-muted-foreground">{prefs.lineHeight.toFixed(2)}</span>
         </div>
         <Slider
+          min={1.4} max={2.0} step={0.05}
           value={[prefs.lineHeight]}
-          min={1.3}
-          max={2.0}
-          step={0.05}
-          className="w-full"
           onValueChange={([v]) => updatePref("lineHeight", v)}
         />
-        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>Eng</span>
-          <span>Weit</span>
-        </div>
       </div>
 
-      {/* Max width — only relevant in paginated mode */}
+      {/* Max width — only meaningful in paginated mode */}
       {!isScroll && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs text-muted-foreground font-medium">Textbreite</label>
-            <span className="text-xs font-mono">{prefs.maxWidth}px</span>
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Textbreite</p>
+            <span className="text-xs text-muted-foreground">{prefs.maxWidth}px</span>
           </div>
           <Slider
+            min={600} max={900} step={20}
             value={[prefs.maxWidth]}
-            min={500}
-            max={900}
-            step={20}
-            className="w-full"
             onValueChange={([v]) => updatePref("maxWidth", v)}
           />
-          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-            <span>Schmal</span>
-            <span>Breit</span>
-          </div>
         </div>
-      )}
-
-      {/* Scroll mode info */}
-      {isScroll && (
-        <p className="text-xs text-muted-foreground border border-border rounded p-2 leading-relaxed">
-          Scroll-Modus: optimale Lesebreite (660 px) — einspaltig auf allen Geräten.
-        </p>
       )}
     </div>
   );

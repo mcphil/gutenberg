@@ -89,3 +89,4 @@
 - [x] Reader: Scroll-Modus als Standard, Blätter-Modus per Toggle in Toolbar (AlignJustify ↔ BookOpen Icon)
 - [x] Reader Scroll-Modus: 100ch Spaltenbreite, zentriert, hellerer Spaltenhintergrund vs. dunklere Ränder (scrollBg pro Theme)
 - [x] Reader Scroll-Modus: Scroll-Position (scrollTop) alle 2s gespeichert, beim Öffnen wiederhergestellt
+- [x] Bug: Scroll-Modus instabil — behoben: location-Feedback-Loop entfernt, manager:continuous entfernt, scrollRestore nur einmal
