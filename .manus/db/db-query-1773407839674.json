@@ -1,0 +1,110 @@
+{
+  "query": "\n-- Books where authors string has a birth year but no death year (format: \"Name, 1883-\")\nSELECT gutenbergId, title, authors\nFROM books\nWHERE authors REGEXP ', [0-9]{4}-[^0-9]'\n   OR authors REGEXP ', [0-9]{4}-$'\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute \n-- Books where authors string has a birth year but no death year (format: \"Name, 1883-\")\nSELECT gutenbergId, title, authors\nFROM books\nWHERE authors REGEXP ', [0-9]{4}-[^0-9]'\n   OR authors REGEXP ', [0-9]{4}-$'\nLIMIT 20;\n",
+  "rows": [
+    {
+      "gutenbergId": "4371",
+      "title": "Jenseits der Schriftkultur — Band 1",
+      "authors": "Nadin, Mihai, 1938-"
+    },
+    {
+      "gutenbergId": "4372",
+      "title": "Jenseits der Schriftkultur — Band 2",
+      "authors": "Nadin, Mihai, 1938-"
+    },
+    {
+      "gutenbergId": "4373",
+      "title": "Jenseits der Schriftkultur — Band 3",
+      "authors": "Nadin, Mihai, 1938-"
+    },
+    {
+      "gutenbergId": "4374",
+      "title": "Jenseits der Schriftkultur — Band 4",
+      "authors": "Nadin, Mihai, 1938-"
+    },
+    {
+      "gutenbergId": "4375",
+      "title": "Jenseits der Schriftkultur — Band 5",
+      "authors": "Nadin, Mihai, 1938-"
+    },
+    {
+      "gutenbergId": "22493",
+      "title": "Ein Heiratsantrag: Scherz in einem Aufzug",
+      "authors": "Chekhov, Anton Pavlovich, 1860-1904; Flachs-Fokschaneanu, Luise, 1863- [Translator]"
+    },
+    {
+      "gutenbergId": "22494",
+      "title": "Der Bär: Groteske in einem Aufzug",
+      "authors": "Chekhov, Anton Pavlovich, 1860-1904; Flachs-Fokschaneanu, Luise, 1863- [Translator]"
+    },
+    {
+      "gutenbergId": "25783",
+      "title": "Experimentelle Untersuchungen über die Frage »Ist die Furcht vor Krankheitsübertragung durch das Telephon berechtigt«? Inaugural-Dissertation zur Erlangung der Doktorwürde in der Medizin, Chirurgie und Geburtshülfe der Hohen Medizinischen Fakultät der Königlichen Universität Greifswald",
+      "authors": "Weiss, Carl, 1887-"
+    },
+    {
+      "gutenbergId": "27254",
+      "title": "Die Romantik der Chemie",
+      "authors": "Nagel, Oskar, 1874-"
+    },
+    {
+      "gutenbergId": "27483",
+      "title": "Die Abenteuer Gawains Ywains und Le Morholts mit den drei Jungfrauen aus der Trilogie (Demanda) des pseudo-Robert de Borron",
+      "authors": "Sommer, H. Oskar (Heinrich Oskar), 1861- [Editor]; Robert, de Boron, active 13th century [Unknown role]"
+    },
+    {
+      "gutenbergId": "29584",
+      "title": "Die Piraterie. Beiträge zum internationalen Seerecht",
+      "authors": "Stiel, Paul, 1882-"
+    },
+    {
+      "gutenbergId": "31213",
+      "title": "Schlupps, der Handwerksbursch; Mären und Schnurren",
+      "authors": "Berg, Clara, 1864-"
+    },
+    {
+      "gutenbergId": "31803",
+      "title": "Der Schäfer: Eine Geschichte aus der Stille",
+      "authors": "Mann, Franziska, 1859-1927; Thon, Alfred, 1886- [Illustrator]"
+    },
+    {
+      "gutenbergId": "33726",
+      "title": "Die hauptsächlichsten Theorien der Geometrie",
+      "authors": "Loria, Gino, 1862-1954; Schütte, Fritz, 1864- [Translator]"
+    },
+    {
+      "gutenbergId": "35137",
+      "title": "Der Tatbestand der Piraterie nach geltendem Völkerrecht",
+      "authors": "Stiel, Paul, 1882-"
+    },
+    {
+      "gutenbergId": "36813",
+      "title": "Kasperle auf Reisen: Eine lustige Geschichte",
+      "authors": "Siebe, Josephine, 1870-1941; Purrmann, Karl, 1877- [Illustrator]"
+    },
+    {
+      "gutenbergId": "38692",
+      "title": "Tonio Kröger [Erstausgabe; Illustrationen von Erich M. Simon]",
+      "authors": "Mann, Thomas, 1875-1955; Simon, Erich M., 1892- [Illustrator]"
+    },
+    {
+      "gutenbergId": "44136",
+      "title": "Auszug aus der Alten, Mittleren und Neueren Geschichte",
+      "authors": "Ploetz, Carl, 1819-1881; Hoffmann, Maximilian, 1844- [Editor]; Kähler, Friedrich, -1933 [Editor]"
+    },
+    {
+      "gutenbergId": "45600",
+      "title": "Almansor: Eine Tragödie",
+      "authors": "Heine, Heinrich, 1797-1856; Kalser, Erwin, 1883-1958 [Editor]; Pissin, Raimund, 1878- [Editor]"
+    },
+    {
+      "gutenbergId": "48205",
+      "title": "Im Land des Lichts: Ein Streifzug durch Kabylie und Wüste",
+      "authors": "Wolf, Thea, 1896-"
+    }
+  ],
+  "messages": [],
+  "stdout": "gutenbergId\ttitle\tauthors\n4371\tJenseits der Schriftkultur — Band 1\tNadin, Mihai, 1938-\n4372\tJenseits der Schriftkultur — Band 2\tNadin, Mihai, 1938-\n4373\tJenseits der Schriftkultur — Band 3\tNadin, Mihai, 1938-\n4374\tJenseits der Schriftkultur — Band 4\tNadin, Mihai, 1938-\n4375\tJenseits der Schriftkultur — Band 5\tNadin, Mihai, 1938-\n22493\tEin Heiratsantrag: Scherz in einem Aufzug\tChekhov, Anton Pavlovich, 1860-1904; Flachs-Fokschaneanu, Luise, 1863- [Translator]\n22494\tDer Bär: Groteske in einem Aufzug\tChekhov, Anton Pavlovich, 1860-1904; Flachs-Fokschaneanu, Luise, 1863- [Translator]\n25783\tExperimentelle Untersuchungen über die Frage »Ist die Furcht vor Krankheitsübertragung durch das Telephon berechtigt«? Inaugural-Dissertation zur Erlangung der Doktorwürde in der Medizin, Chirurgie und Geburtshülfe der Hohen Medizinischen Fakultät der Königlichen Universität Greifswald\tWeiss, Carl, 1887-\n27254\tDie Romantik der Chemie\tNagel, Oskar, 1874-\n27483\tDie Abenteuer Gawains Ywains und Le Morholts mit den drei Jungfrauen aus der Trilogie (Demanda) des pseudo-Robert de Borron\tSommer, H. Oskar (Heinrich Oskar), 1861- [Editor]; Robert, de Boron, active 13th century [Unknown role]\n29584\tDie Piraterie. Beiträge zum internationalen Seerecht\tStiel, Paul, 1882-\n31213\tSchlupps, der Handwerksbursch; Mären und Schnurren\tBerg, Clara, 1864-\n31803\tDer Schäfer: Eine Geschichte aus der Stille\tMann, Franziska, 1859-1927; Thon, Alfred, 1886- [Illustrator]\n33726\tDie hauptsächlichsten Theorien der Geometrie\tLoria, Gino, 1862-1954; Schütte, Fritz, 1864- [Translator]\n35137\tDer Tatbestand der Piraterie nach geltendem Völkerrecht\tStiel, Paul, 1882-\n36813\tKasperle auf Reisen: Eine lustige Geschichte\tSiebe, Josephine, 1870-1941; Purrmann, Karl, 1877- [Illustrator]\n38692\tTonio Kröger [Erstausgabe; Illustrationen von Erich M. Simon]\tMann, Thomas, 1875-1955; Simon, Erich M., 1892- [Illustrator]\n44136\tAuszug aus der Alten, Mittleren und Neueren Geschichte\tPloetz, Carl, 1819-1881; Hoffmann, Maximilian, 1844- [Editor]; Kähler, Friedrich, -1933 [Editor]\n45600\tAlmansor: Eine Tragödie\tHeine, Heinrich, 1797-1856; Kalser, Erwin, 1883-1958 [Editor]; Pissin, Raimund, 1878- [Editor]\n48205\tIm Land des Lichts: Ein Streifzug durch Kabylie und Wüste\tWolf, Thea, 1896-\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}

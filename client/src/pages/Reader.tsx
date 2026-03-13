@@ -76,7 +76,7 @@ export default function Reader({ bookId }: ReaderProps) {
       setBookTitle(book.title);
       setBookCover(getCoverUrlById(bookId));
       // § 64 UrhG: redirect to book detail if still under copyright in Germany
-      if (isCopyrightProtectedDE(book.authors)) {
+      if (isCopyrightProtectedDE(book.authors, new Date().getFullYear(), book.copyrightProtectedUntil)) {
         navigate(`/book/${bookId}`);
       }
     }

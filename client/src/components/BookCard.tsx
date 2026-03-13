@@ -42,7 +42,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
   );
 
   const shortSummary = propSummary ?? cachedSummary?.shortSummary ?? null;
-  const isProtected = isCopyrightProtectedDE(book.authors);
+  const isProtected = isCopyrightProtectedDE(book.authors, new Date().getFullYear(), book.copyrightProtectedUntil);
 
   return (
     <div

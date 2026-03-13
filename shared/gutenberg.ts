@@ -29,6 +29,13 @@ export interface LocalBook {
   /** Semicolon-separated bookshelves */
   bookshelves: string | null;
   importedAt: Date;
+  /**
+   * Explicit copyright override for Germany (§ 64 UrhG).
+   * null  = use automatic heuristic.
+   * 0     = definitively public domain.
+   * YYYY  = protected until end of that year.
+   */
+  copyrightProtectedUntil: number | null;
 }
 
 export interface BookListResult {
@@ -184,24 +191,65 @@ export function getEpubProxyUrl(gutenbergId: number): string {
  */
 export function isCopyrightProtectedDE(
   authorsStr: string | null,
-  referenceYear: number = new Date().getFullYear()
+  referenceYear: number = new Date().getFullYear(),
+  copyrightProtectedUntil?: number | null
 ): boolean {
-  if (!authorsStr) return true; // unknown = conservative: assume protected
+  // ── 1. Explicit database override ────────────────────────────────────────
+  if (copyrightProtectedUntil !== undefined && copyrightProtectedUntil !== null) {
+    if (copyrightProtectedUntil === 0) return false;          // explicitly public domain
+    return referenceYear <= copyrightProtectedUntil;          // protected until year X
+  }
+
+  // ── 2. No authors string → conservative: assume protected ────────────────
+  if (!authorsStr) return true;
 
   const authors = parseAuthors(authorsStr);
+
   // Only consider primary authors (no [Translator], [Editor], [Contributor] etc.)
   const primaryAuthors = authors.filter(
     (a) => !a.displayName.match(/\[(Translator|Editor|Contributor|Illustrator|Compiler|Annotator|Commentator|Adapter|Arranger|Foreword|Introduction|Preface)\]/i)
   );
 
-  if (primaryAuthors.length === 0) return true; // no primary author found = protected
+  if (primaryAuthors.length === 0) return true;
 
   for (const author of primaryAuthors) {
-    if (author.deathYear === null) return true; // unknown death year = protected
-    if (referenceYear - author.deathYear < 70) return true; // died within 70 years
+    if (author.deathYear !== null) {
+      // Known death year: standard 70-year rule
+      if (referenceYear - author.deathYear < 70) return true;
+    } else if (author.birthYear !== null) {
+      // No death year but birth year known:
+      // If born before 1880, assume they died before 1956 → public domain
+      // If born 1880+, we cannot safely assume → conservative: protected
+      if (author.birthYear >= 1880) return true;
+      // else: ancient enough, fall through to public domain
+    } else {
+      // No dates at all: check if the name looks like an ancient/classical author
+      // (heuristic: if the raw author string contains no year digits at all,
+      //  and the name matches known ancient patterns, treat as public domain)
+      const hasAnyYear = /\d{3,4}/.test(authorsStr);
+      if (!hasAnyYear) {
+        // Completely undated — could be ancient (Aristoteles) or could be modern
+        // anonymous. We treat as public domain only if the name appears in our
+        // known-ancient list; otherwise conservative.
+        const ancientNames = [
+          "aristotel", "homer", "plato", "platon", "sokrates", "cicero",
+          "virgil", "vergil", "ovid", "horaz", "tacitus", "caesar",
+          "sophokles", "euripides", "aischylos", "herodot", "thukydides",
+          "seneca", "marcus aurelius", "epiktet", "plutarch", "livius",
+          "anonymous", "anonym", "unbekannt", "various",
+        ];
+        const nameLower = authorsStr.toLowerCase();
+        const isAncient = ancientNames.some((n) => nameLower.includes(n));
+        if (!isAncient) return true; // unknown, undated, not ancient → protected
+        // else: known ancient → public domain, fall through
+      } else {
+        // Has year digits but we couldn't parse them → conservative
+        return true;
+      }
+    }
   }
 
-  return false; // all primary authors died 70+ years ago = public domain in Germany
+  return false; // all primary authors determined to be public domain
 }
 
 // ─── Subject translation map (English → German) ──────────────────────────────

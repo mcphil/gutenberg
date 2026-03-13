@@ -68,7 +68,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
   const subjects = parseSubjects(book.subjects);
   const bookshelves = parseBookshelves(book.bookshelves);
   // § 64 UrhG: check if the book is still under copyright in Germany
-  const isProtected = isCopyrightProtectedDE(book.authors);
+  const isProtected = isCopyrightProtectedDE(book.authors, new Date().getFullYear(), book.copyrightProtectedUntil);
 
   return (
     <div className="container py-6 max-w-4xl mx-auto">

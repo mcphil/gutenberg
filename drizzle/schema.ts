@@ -54,6 +54,13 @@ export const books = mysqlTable("books", {
   bookshelves: text("bookshelves"),
   // When this row was last imported/updated from the CSV
   importedAt: timestamp("importedAt").defaultNow().notNull(),
+  /**
+   * Explicit copyright override for Germany (§ 64 UrhG).
+   * NULL = use automatic heuristic (deathYear + 70).
+   * 0    = definitively public domain (e.g. ancient authors, anonymous works).
+   * YYYY = protected until end of that year (e.g. 2034 means protected through 2034).
+   */
+  copyrightProtectedUntil: int("copyrightProtectedUntil"),
 }, (table) => ({
   titleIdx: index("title_idx").on(table.title),
 }));

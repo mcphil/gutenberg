@@ -80,3 +80,12 @@
 - [x] Cover kleiner, Inhalt immer vertikal zentriert (nicht am oberen Rand klebend)
 - [x] Responsives Layout: Portrait = Cover oben / Text unten; Landscape/Breit = Cover links / Text rechts
 - [x] Rubberband-Effekt beim Wischen (leichte Überdehnung mit Rückfeder-Animation)
+
+## Urheberrecht — Erweiterung (§ 64 UrhG)
+- [x] Neues DB-Feld `copyrightProtectedUntil` (INT, NULL=Heuristik, 0=Gemeinfrei, YYYY=geschützt bis)
+- [x] Drizzle-Migration generiert und angewendet
+- [x] Antike Autoren (Aristoteles, Homer, Platon, Cicero etc.) auf 0 (gemeinfrei) gesetzt
+- [x] Autoren mit offenem Geburtsjahr vor 1880 (kein Todesjahr) auf 0 gesetzt via Node.js-Skript
+- [x] isCopyrightProtectedDE() nutzt das neue Feld als expliziten Override (Priorität 1)
+- [x] Verbesserte Heuristik: Geburtsjahr < 1880 ohne Todesjahr → gemeinfrei; bekannte antike Namen → gemeinfrei
+- [x] BookCard, BookDetail, BrowseMode, Reader: copyrightProtectedUntil wird übergeben

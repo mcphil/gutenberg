@@ -191,7 +191,7 @@ function BrowseSlide({ book, onRead, onDetail, isVisible }: BrowseSlideProps) {
   const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
   const subjects = parseSubjects(book.subjects);
-  const isProtected = isCopyrightProtectedDE(book.authors);
+  const isProtected = isCopyrightProtectedDE(book.authors, new Date().getFullYear(), book.copyrightProtectedUntil);
 
   // Only fetch summary when slide is near-visible (lazy)
   const { data: cachedSummary } = trpc.summaries.getCached.useQuery(

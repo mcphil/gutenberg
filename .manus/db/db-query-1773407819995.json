@@ -1,0 +1,13 @@
+{
+  "query": "\nUPDATE books SET copyrightProtectedUntil = 0\nWHERE (\n  authors LIKE '%Aristotel%'\n  OR authors LIKE '%Homer%'\n  OR authors LIKE '%Plato%'\n  OR authors LIKE '%Platon%'\n  OR authors LIKE '%Sokrates%'\n  OR authors LIKE '%Cicero%'\n  OR authors LIKE '%Virgil%'\n  OR authors LIKE '%Vergil%'\n  OR authors LIKE '%Ovid%'\n  OR authors LIKE '%Horaz%'\n  OR authors LIKE '%Tacitus%'\n  OR authors LIKE '%Caesar%'\n  OR authors LIKE '%Sophokles%'\n  OR authors LIKE '%Euripides%'\n  OR authors LIKE '%Aischylos%'\n  OR authors LIKE '%Herodot%'\n  OR authors LIKE '%Thukydides%'\n  OR authors LIKE '%Seneca%'\n  OR authors LIKE '%Marcus Aurelius%'\n  OR authors LIKE '%Epiktet%'\n  OR authors LIKE '%Plutarch%'\n  OR authors LIKE '%Livius%'\n);\n\nSELECT COUNT(*) as updated_to_public_domain FROM books WHERE copyrightProtectedUntil = 0;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute \nUPDATE books SET copyrightProtectedUntil = 0\nWHERE (\n  authors LIKE '%Aristotel%'\n  OR authors LIKE '%Homer%'\n  OR authors LIKE '%Plato%'\n  OR authors LIKE '%Platon%'\n  OR authors LIKE '%Sokrates%'\n  OR authors LIKE '%Cicero%'\n  OR authors LIKE '%Virgil%'\n  OR authors LIKE '%Vergil%'\n  OR authors LIKE '%Ovid%'\n  OR authors LIKE '%Horaz%'\n  OR authors LIKE '%Tacitus%'\n  OR authors LIKE '%Caesar%'\n  OR authors LIKE '%Sophokles%'\n  OR authors LIKE '%Euripides%'\n  OR authors LIKE '%Aischylos%'\n  OR authors LIKE '%Herodot%'\n  OR authors LIKE '%Thukydides%'\n  OR authors LIKE '%Seneca%'\n  OR authors LIKE '%Marcus Aurelius%'\n  OR authors LIKE '%Epiktet%'\n  OR authors LIKE '%Plutarch%'\n  OR authors LIKE '%Livius%'\n);\n\nSELECT COUNT(*) as updated_to_public_domain FROM books WHERE copyrightProtectedUntil = 0;\n",
+  "rows": [
+    {
+      "updated_to_public_domain": "4"
+    }
+  ],
+  "messages": [],
+  "stdout": "updated_to_public_domain\n4\n",
+  "stderr": "",
+  "execution_time_ms": 118
+}
