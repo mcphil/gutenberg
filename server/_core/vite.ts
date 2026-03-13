@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
+import { createMetaMiddleware } from "../meta";
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -57,6 +58,9 @@ export function serveStatic(app: Express) {
       `Could not find the build directory: ${distPath}, make sure to build the client first`
     );
   }
+
+  // Inject dynamic meta tags for /book/:id and /author/:name before static serving
+  app.use(createMetaMiddleware(distPath));
 
   app.use(express.static(distPath));
 

@@ -93,3 +93,6 @@
 ## SEO
 - [x] Dynamische Sitemap /sitemap.xml mit allen Buchdetailseiten, Autorenseiten und statischen Routen (2.395 Bücher + 1.255 Autoren)
 - [x] robots.txt auf dynamische Sitemap aktualisieren
+- [x] Server-seitige Meta-Tag-Injektion für /book/:id (title, description, OG, Twitter Card, JSON-LD)
+- [x] JSON-LD schema.org/Book Strukturdaten in BookDetail.tsx (client-seitig via useEffect)
+- [x] Dynamischer <title> und <meta description> für Autorenseiten (/author/:name) via server-seitige Injektion

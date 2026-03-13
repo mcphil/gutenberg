@@ -31,16 +31,69 @@ export default function BookDetail({ bookId }: BookDetailProps) {
 
   const progress = getProgress(bookId);
 
-  // Track recently viewed
+  // Track recently viewed + update document meta tags client-side
   useEffect(() => {
-    if (book) {
-      addRecentBook({
-        gutenbergId: book.gutenbergId,
-        title: book.title,
-        authors: getAuthorDisplay(book),
-        coverUrl: getCoverUrl(book),
-      });
+    if (!book) return;
+
+    addRecentBook({
+      gutenbergId: book.gutenbergId,
+      title: book.title,
+      authors: getAuthorDisplay(book),
+      coverUrl: getCoverUrl(book),
+    });
+
+    // Dynamic <title>
+    const authorDisplay = getAuthorDisplay(book);
+    document.title = `${book.title} — ${authorDisplay} | Gutenberg Navigator`;
+
+    // Dynamic <meta name="description">
+    const desc = `„${book.title}“ von ${authorDisplay}. Kostenlos lesen auf Gutenberg Navigator — über 2.400 deutschsprachige Klassiker.`;
+    let metaDesc = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.name = 'description';
+      document.head.appendChild(metaDesc);
     }
+    metaDesc.content = desc.length > 160 ? desc.slice(0, 159) + '…' : desc;
+
+    // JSON-LD structured data
+    const existingLd = document.getElementById('book-jsonld');
+    if (existingLd) existingLd.remove();
+    const authors = parseAuthors(book.authors);
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Book',
+      '@id': `https://gutenberg-navigator.de/book/${book.gutenbergId}`,
+      'name': book.title,
+      'url': `https://gutenberg-navigator.de/book/${book.gutenbergId}`,
+      'inLanguage': 'de',
+      'author': authors
+        .filter(a => !a.displayName.match(/\[(Translator|Editor|Contributor|Illustrator|Compiler)\]/i))
+        .map(a => ({ '@type': 'Person', 'name': a.displayName })),
+      'publisher': {
+        '@type': 'Organization',
+        'name': 'Project Gutenberg',
+        'url': 'https://www.gutenberg.org',
+      },
+      'offers': {
+        '@type': 'Offer',
+        'price': '0',
+        'priceCurrency': 'EUR',
+        'availability': 'https://schema.org/InStock',
+      },
+    };
+    const script = document.createElement('script');
+    script.id = 'book-jsonld';
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(jsonLd);
+    document.head.appendChild(script);
+
+    // Cleanup on unmount
+    return () => {
+      document.title = 'Gutenberg Navigator — Deutschsprachige Werke';
+      const ld = document.getElementById('book-jsonld');
+      if (ld) ld.remove();
+    };
   }, [book?.gutenbergId]);
 
   const summary = cachedSummary
