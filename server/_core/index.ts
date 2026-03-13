@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { getCoverPath } from "../covers";
 import { generateFallbackCoverSvg } from "../fallbackCover";
 import { getEpubPath } from "../epubs";
+import { serveSitemapIndex, serveStaticSitemap, serveBooksSitemap, serveAuthorsSitemap } from "../sitemap";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -98,6 +99,12 @@ async function startServer() {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+
+  // Dynamic sitemaps
+  app.get("/sitemap.xml", serveSitemapIndex);
+  app.get("/sitemap-static.xml", serveStaticSitemap);
+  app.get("/sitemap-books.xml", serveBooksSitemap);
+  app.get("/sitemap-authors.xml", serveAuthorsSitemap);
 
   // tRPC API
   app.use(

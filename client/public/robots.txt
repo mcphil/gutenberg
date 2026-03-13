@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Dynamic sitemap index — includes all book and author pages
+Sitemap: https://gutenberg-navigator.de/sitemap.xml

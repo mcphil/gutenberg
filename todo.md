@@ -89,3 +89,7 @@
 - [x] isCopyrightProtectedDE() nutzt das neue Feld als expliziten Override (Priorität 1)
 - [x] Verbesserte Heuristik: Geburtsjahr < 1880 ohne Todesjahr → gemeinfrei; bekannte antike Namen → gemeinfrei
 - [x] BookCard, BookDetail, BrowseMode, Reader: copyrightProtectedUntil wird übergeben
+
+## SEO
+- [x] Dynamische Sitemap /sitemap.xml mit allen Buchdetailseiten, Autorenseiten und statischen Routen (2.395 Bücher + 1.255 Autoren)
+- [x] robots.txt auf dynamische Sitemap aktualisieren
