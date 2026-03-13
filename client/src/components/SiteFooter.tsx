@@ -7,7 +7,7 @@ export function SiteFooter() {
         <span>
           Eine{" "}
           <a
-            href="https://www.smartthings.de"
+            href="https://smartthings.de"
             target="_blank"
             rel="noopener"
             title="Smart Things Internetkommunikation GmbH – Webagentur in Solingen"
