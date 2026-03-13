@@ -186,6 +186,8 @@ interface BrowseSlideProps {
 
 function BrowseSlide({ book, onRead, onDetail, isVisible }: BrowseSlideProps) {
   const [imgError, setImgError] = useState(false);
+  const slideRef = useRef<HTMLDivElement>(null);
+  const [opacity, setOpacity] = useState(1);
   const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
   const subjects = parseSubjects(book.subjects);
@@ -198,8 +200,31 @@ function BrowseSlide({ book, onRead, onDetail, isVisible }: BrowseSlideProps) {
   );
   const shortSummary = cachedSummary?.shortSummary ?? null;
 
+  // Fade based on how much of the slide is visible
+  useEffect(() => {
+    const el = slideRef.current;
+    if (!el) return;
+    // Use many threshold steps for a smooth fade curve
+    const thresholds = Array.from({ length: 21 }, (_, i) => i / 20);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // ratio 1.0 = fully visible (opaque), 0.0 = fully hidden (transparent)
+        // We start fading at 0.85 so the effect is subtle but noticeable
+        const ratio = entry.intersectionRatio;
+        const fade = ratio >= 0.85 ? 1 : ratio / 0.85;
+        setOpacity(fade);
+      },
+      {
+        root: el.parentElement, // the scroll container
+        threshold: thresholds,
+      }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="browse-slide">
+    <div ref={slideRef} className="browse-slide" style={{ opacity, transition: "opacity 0.15s ease" }}>
       <div className="browse-inner">
         {/* Cover */}
         <div className="browse-cover">
