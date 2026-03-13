@@ -75,3 +75,8 @@
 - [x] BookDetail: Nur Gutenberg.org-Link wenn urheberrechtlich geschützt, Hinweistext anzeigen
 - [x] BookCard: Kein "Lesen"-Button wenn urheberrechtlich geschützt (Schloss-Icon + Hinweis im Hover-Overlay)
 - [x] Reader: Direkte URL-Navigation blockieren wenn urheberrechtlich geschützt (Redirect zur Buchdetailseite)
+
+## Browse-Modus Verbesserungen
+- [x] Cover kleiner, Inhalt immer vertikal zentriert (nicht am oberen Rand klebend)
+- [x] Responsives Layout: Portrait = Cover oben / Text unten; Landscape/Breit = Cover links / Text rechts
+- [x] Rubberband-Effekt beim Wischen (leichte Überdehnung mit Rückfeder-Animation)

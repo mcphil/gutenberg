@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import {
   getAuthorDisplay, getCoverUrl, parseSubjects, translateSubject,
-  type LocalBook
+  type LocalBook, isCopyrightProtectedDE
 } from "../../../shared/gutenberg";
 
 interface BrowseModeProps {
@@ -26,9 +26,11 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
   const [cardState, setCardState] = useState<CardState>("active");
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Touch tracking
+  // Rubber-band state: dragY = current drag offset in px
+  const [dragY, setDragY] = useState(0);
   const touchStartY = useRef<number | null>(null);
   const touchStartTime = useRef<number>(0);
+  const isDragging = useRef(false);
 
   const { data, isFetching } = trpc.books.list.useQuery(
     { page, sort: "popular" },
@@ -60,6 +62,7 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
       if (nextIndex < 0 || nextIndex >= books.length) return;
 
       setIsTransitioning(true);
+      setDragY(0);
       setCardState(dir === "up" ? "exiting-to-top" : "exiting-to-bottom");
 
       setTimeout(() => {
@@ -71,7 +74,7 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
             setIsTransitioning(false);
           });
         });
-      }, 380);
+      }, 340);
     },
     [isTransitioning, currentIndex, books.length]
   );
@@ -105,20 +108,34 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
     [goTo]
   );
 
-  // Touch navigation
+  // Touch: rubber-band drag + swipe
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartY.current = e.touches[0].clientY;
     touchStartTime.current = Date.now();
+    isDragging.current = true;
   }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging.current || touchStartY.current === null || isTransitioning) return;
+    const dy = touchStartY.current - e.touches[0].clientY;
+    // Rubber-band: dampen the drag with a sqrt curve so it feels elastic
+    const damped = Math.sign(dy) * Math.sqrt(Math.abs(dy)) * 4;
+    setDragY(-damped);
+  }, [isTransitioning]);
 
   const handleTouchEnd = useCallback(
     (e: React.TouchEvent) => {
       if (touchStartY.current === null) return;
+      isDragging.current = false;
       const dy = touchStartY.current - e.changedTouches[0].clientY;
       const dt = Date.now() - touchStartTime.current;
       const velocity = Math.abs(dy) / dt;
+
       if (Math.abs(dy) > 50 || velocity > 0.3) {
         goTo(dy > 0 ? "up" : "down");
+      } else {
+        // Snap back with spring animation
+        setDragY(0);
       }
       touchStartY.current = null;
     },
@@ -132,6 +149,7 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
       className="fixed inset-0 z-50 bg-background overflow-hidden"
       onWheel={handleWheel}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       style={{ touchAction: "none" }}
     >
@@ -154,6 +172,7 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
         <BrowseCard
           book={currentBook}
           state={cardState}
+          dragY={dragY}
           onRead={() => navigate(`/read/${currentBook.gutenbergId}`)}
           onDetail={() => navigate(`/book/${currentBook.gutenbergId}`)}
         />
@@ -215,51 +234,71 @@ export default function BrowseMode({ onClose }: BrowseModeProps) {
 interface BrowseCardProps {
   book: LocalBook;
   state: CardState;
+  dragY: number;
   onRead: () => void;
   onDetail: () => void;
 }
 
-function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
+function BrowseCard({ book, state, dragY, onRead, onDetail }: BrowseCardProps) {
   const [imgError, setImgError] = useState(false);
   const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
   const subjects = parseSubjects(book.subjects);
+  const isProtected = isCopyrightProtectedDE(book.authors);
 
   const { data: cachedSummary } = trpc.summaries.getCached.useQuery({ gutenbergId: book.gutenbergId });
-
   const shortSummary = cachedSummary?.shortSummary ?? null;
 
+  // Rubber-band: only apply dragY when in "active" state (not during transition)
+  const isActive = state === "active";
+  const extraTransform = isActive && dragY !== 0 ? ` translateY(${dragY}px)` : "";
+  const rubberTransition = isActive && dragY === 0
+    ? "transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.34s ease"
+    : isActive
+    ? "none"
+    : undefined;
+
   return (
-    <div className={`browse-card ${state}`}>
-      <div className="flex flex-col h-full">
-        {/* Cover — takes ~55% of height */}
-        <div
-          className="relative flex-shrink-0 overflow-hidden bg-muted"
-          style={{ height: "55vh" }}
-        >
+    <div
+      className={`browse-card ${state}`}
+      style={
+        isActive
+          ? { transform: `translateY(0)${extraTransform}`, transition: rubberTransition ?? undefined }
+          : undefined
+      }
+    >
+      {/*
+        Responsive layout:
+        - Portrait / narrow (< ~640px wide OR aspect < 1): cover top, text bottom (flex-col)
+        - Landscape / wide (>= 640px AND aspect >= 1): cover left, text right (flex-row)
+        We use a CSS custom property trick via a container query-like approach with
+        @media (orientation: landscape) and min-width.
+      */}
+      <div className="browse-inner">
+        {/* Cover */}
+        <div className="browse-cover">
           {!imgError ? (
             <img
               src={coverUrl}
               alt={`Cover: ${book.title}`}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain drop-shadow-xl"
               onError={() => setImgError(true)}
             />
           ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center p-8">
-              <BookOpen className="w-16 h-16 text-muted-foreground mb-4" />
+            <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-muted rounded-lg">
+              <BookOpen className="w-12 h-12 text-muted-foreground mb-3" />
               <p
-                className="text-xl text-center font-medium text-foreground"
+                className="text-base text-center font-medium text-foreground"
                 style={{ fontFamily: "Lora, Georgia, serif" }}
               >
                 {book.title}
               </p>
             </div>
           )}
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-background to-transparent" />
         </div>
 
         {/* Info panel */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-16 pt-2 max-w-2xl mx-auto w-full">
+        <div className="browse-info">
           <h2
             className="text-xl sm:text-2xl font-semibold text-foreground leading-tight mb-1"
             style={{ fontFamily: "Lora, Georgia, serif" }}
@@ -268,11 +307,10 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
           </h2>
           <p className="text-sm text-muted-foreground mb-3">{author}</p>
 
-          {/* Summary */}
           {shortSummary ? (
             <div className="flex items-start gap-1.5 mb-4">
               <Sparkles className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
-              <p className="text-sm leading-relaxed text-foreground/80">
+              <p className="text-sm leading-relaxed text-foreground/80 line-clamp-5">
                 {shortSummary}
               </p>
             </div>
@@ -282,9 +320,8 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
             </p>
           )}
 
-          {/* Subjects */}
           {subjects.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-4">
+            <div className="flex flex-wrap gap-1.5 mb-5">
               {subjects.slice(0, 4).map((s) => (
                 <Badge key={s} variant="secondary" className="text-xs">
                   {translateSubject(s)}
@@ -293,17 +330,22 @@ function BrowseCard({ book, state, onRead, onDetail }: BrowseCardProps) {
             </div>
           )}
 
-          {/* NOTE: book.issued is the Gutenberg upload date, NOT the original publication year — do not display it */}
-
-          {/* Actions */}
           <div className="flex gap-3">
-            <Button className="flex-1 gap-2" onClick={onRead}>
-              <BookOpen className="w-4 h-4" />
-              Lesen
-            </Button>
-            <Button variant="outline" className="flex-1" onClick={onDetail}>
-              Mehr Details
-            </Button>
+            {isProtected ? (
+              <Button variant="outline" className="flex-1" onClick={onDetail}>
+                Mehr Details
+              </Button>
+            ) : (
+              <>
+                <Button className="flex-1 gap-2" onClick={onRead}>
+                  <BookOpen className="w-4 h-4" />
+                  Lesen
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={onDetail}>
+                  Details
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
