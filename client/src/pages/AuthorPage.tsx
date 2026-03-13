@@ -86,6 +86,7 @@ export default function AuthorPage() {
               <BookCard
                 key={book.gutenbergId}
                 book={book as unknown as LocalBook}
+                onClick={() => navigate(`/book/${book.gutenbergId}`)}
               />
             ))}
           </div>

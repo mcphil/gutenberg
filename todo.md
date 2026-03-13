@@ -92,3 +92,4 @@
 - [x] Bug: Scroll-Modus instabil — behoben: location-Feedback-Loop entfernt, manager:continuous entfernt, scrollRestore nur einmal
 - [x] Autoren-Seite /author/:name mit gefilterter Buchübersicht (5-Spalten-Grid, Lebensdaten im Header)
 - [x] Autorennamen in BookDetail und BookCard klickbar gemacht (navigiert zu /author/:name)
+- [x] Bug: Autoren-Seite — Klick auf Buchkarte navigiert nicht zur Buchdetailseite (onClick-Handler fehlte)
