@@ -90,7 +90,7 @@ export default function Home() {
                 Weiterlesen
               </h2>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-1">
+            <div className="flex gap-3 overflow-x-auto pt-3 pb-2 px-1 -mx-1">
               {recentProgress.map((p) => (
                 <div key={p.gutenbergId} className="shrink-0 relative group/card" style={{ minWidth: 220 }}>
                   {/* Delete button — appears on hover */}
