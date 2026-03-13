@@ -60,6 +60,7 @@
 
 ## Bug Fixes
 - [x] Bug: Hero-Einleitung verschwindet wenn "Weiterlesen"-Sektion sichtbar ist — Bedingung entfernt, beide Sektionen immer sichtbar
+- [x] Weiterlesen-Einträge einzeln löschbar (X-Button erscheint beim Hover, entfernt Eintrag aus localStorage)
 - [x] Englische Gutenberg-Fallback-Zusammenfassungen entfernt
 - [x] Buchcover nie anschneiden — object-contain überall
 - [x] Typografisches SVG-Fallback-Cover für Bücher ohne Bild (8 Farbpaletten, Titel + Autor)

@@ -65,7 +65,18 @@ export function useReadingProgress() {
     [progress]
   );
 
-  return { saveProgress, getProgress, getAllProgress };
+  const removeProgress = useCallback(
+    (gutenbergId: number) => {
+      setProgress((prev) => {
+        const next = { ...prev };
+        delete next[gutenbergId];
+        return next;
+      });
+    },
+    [setProgress]
+  );
+
+  return { saveProgress, getProgress, getAllProgress, removeProgress };
 }
 
 // ─── Bookmarks ────────────────────────────────────────────────

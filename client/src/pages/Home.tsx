@@ -3,7 +3,7 @@ import { AppHeader } from "@/components/AppHeader";
 import Catalog from "./Catalog";
 import BrowseMode from "./BrowseMode";
 import { useAppPreferences } from "@/hooks/useLocalStorage";
-import { BookOpen, Clock, Shuffle } from "lucide-react";
+import { BookOpen, Clock, Shuffle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useReadingProgress } from "@/hooks/useLocalStorage";
@@ -14,7 +14,7 @@ export default function Home() {
   const { appPrefs, updateAppPref } = useAppPreferences();
   const [view, setView] = useState<"grid" | "list" | "browse">(appPrefs.defaultView);
   const [searchQuery, setSearchQuery] = useState("");
-  const { getAllProgress } = useReadingProgress();
+  const { getAllProgress, removeProgress } = useReadingProgress();
   const { data: countData } = trpc.books.count.useQuery();
   const bookCount = countData ?? 2420;
   // Sync dark mode to <html>>
@@ -92,39 +92,51 @@ export default function Home() {
             </div>
             <div className="flex gap-3 overflow-x-auto pb-1">
               {recentProgress.map((p) => (
-                <button
-                  key={p.gutenbergId}
-                  onClick={() => navigate(`/read/${p.gutenbergId}`)}
-                  className="shrink-0 flex items-center gap-3 bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors text-left"
-                  style={{ minWidth: 220 }}
-                >
-                  {p.coverUrl && (
-                    <div className="w-10 shrink-0 rounded overflow-hidden bg-muted" style={{ aspectRatio: "2/3" }}>
-                      <img
-                        src={p.coverUrl}
-                        alt=""
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium line-clamp-2 text-foreground"
-                       style={{ fontFamily: "Lora, Georgia, serif" }}>
-                      {p.title}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-1.5">
-                      <div className="flex-1 bg-border rounded-full h-1">
-                        <div
-                          className="bg-primary h-1 rounded-full"
-                          style={{ width: `${Math.round(p.percentage * 100)}%` }}
+                <div key={p.gutenbergId} className="shrink-0 relative group/card" style={{ minWidth: 220 }}>
+                  {/* Delete button — appears on hover */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeProgress(p.gutenbergId);
+                    }}
+                    className="absolute -top-1.5 -right-1.5 z-10 w-5 h-5 rounded-full bg-muted border border-border flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
+                    title="Aus der Liste entfernen"
+                    aria-label="Aus Weiterlesen entfernen"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => navigate(`/read/${p.gutenbergId}`)}
+                    className="w-full flex items-center gap-3 bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors text-left"
+                  >
+                    {p.coverUrl && (
+                      <div className="w-10 shrink-0 rounded overflow-hidden bg-muted" style={{ aspectRatio: "2/3" }}>
+                        <img
+                          src={p.coverUrl}
+                          alt=""
+                          className="w-full h-full object-contain"
                         />
                       </div>
-                      <span className="text-xs text-muted-foreground shrink-0">
-                        {Math.round(p.percentage * 100)}%
-                      </span>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium line-clamp-2 text-foreground"
+                         style={{ fontFamily: "Lora, Georgia, serif" }}>
+                        {p.title}
+                      </p>
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <div className="flex-1 bg-border rounded-full h-1">
+                          <div
+                            className="bg-primary h-1 rounded-full"
+                            style={{ width: `${Math.round(p.percentage * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {Math.round(p.percentage * 100)}%
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </button>
+                  </button>
+                </div>
               ))}
             </div>
           </div>
