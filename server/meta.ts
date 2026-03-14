@@ -43,6 +43,7 @@ interface MetaData {
   description: string;
   url: string;
   image: string;
+  ogType?: string;
   jsonLd?: object;
 }
 
@@ -62,11 +63,15 @@ function buildMetaTags(meta: MetaData): string {
     <meta name="description" content="${d}" />
     <link rel="canonical" href="${u}" />
     <!-- Open Graph -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content="${meta.ogType ?? 'website'}" />
     <meta property="og:title" content="${t}" />
     <meta property="og:description" content="${d}" />
     <meta property="og:url" content="${u}" />
     <meta property="og:image" content="${img}" />
+    <meta property="og:image:width" content="400" />
+    <meta property="og:image:height" content="560" />
+    <meta property="og:image:type" content="image/webp" />
+    <meta property="og:image:alt" content="${t}" />
     <meta property="og:locale" content="de_DE" />
     <meta property="og:site_name" content="Gutenberg Navigator" />
     <!-- Twitter Card -->
@@ -102,7 +107,7 @@ async function buildBookMeta(bookId: number): Promise<MetaData | null> {
     160
   );
   const url = `${DOMAIN}/book/${bookId}`;
-  const image = `${DOMAIN}/api/covers/${bookId}?title=${encodeURIComponent(book.title)}&author=${encodeURIComponent(authorDisplay)}`;
+  const image = `${DOMAIN}/api/covers/${bookId}`;
 
   // JSON-LD: schema.org/Book
   const jsonLd: object = {
@@ -140,7 +145,7 @@ async function buildBookMeta(bookId: number): Promise<MetaData | null> {
     },
   };
 
-  return { title, description, url, image, jsonLd };
+  return { title, description, url, image, ogType: "book", jsonLd };
 }
 
 // ─── Author meta builder ──────────────────────────────────────────────────────
@@ -160,7 +165,7 @@ async function buildAuthorMeta(authorName: string): Promise<MetaData | null> {
   // Use cover of the first book as OG image
   const firstBook = authorBooks[0];
   const image = firstBook
-    ? `${DOMAIN}/api/covers/${firstBook.gutenbergId}?title=${encodeURIComponent(firstBook.title)}&author=${encodeURIComponent(authorName)}`
+    ? `${DOMAIN}/api/covers/${firstBook.gutenbergId}`
     : DEFAULT_IMAGE;
 
   // JSON-LD: schema.org/Person
@@ -194,12 +199,6 @@ export function createMetaMiddleware(distPath: string) {
     const authorMatch = url.match(/^\/author\/(.+)$/);
 
     if (!bookMatch && !authorMatch) {
-      next();
-      return;
-    }
-
-    // Only inject in production (static serving); dev uses Vite
-    if (process.env.NODE_ENV !== "production") {
       next();
       return;
     }

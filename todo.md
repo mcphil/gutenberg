@@ -116,3 +116,6 @@
 
 ## SEO
 - [x] Cover-URLs als image:image-Einträge in XML-Sitemap integrieren
+
+## Social Sharing
+- [x] Vollständige OG-Struktur für Detailansicht (og:image mit Cover, og:image:width/height, og:type=book, alle Pflichtfelder)

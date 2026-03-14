@@ -76,6 +76,8 @@ export default function BookDetail({ bookId }: BookDetailProps) {
     setMeta('og:image:width', '400');
     setMeta('og:image:height', '560');
     setMeta('og:image:type', 'image/webp');
+    setMeta('og:image:alt', `${book.title} — ${authorDisplay}`);
+    setMeta('og:locale', 'de_DE');
     setMeta('og:site_name', 'Gutenberg Navigator');
     setMeta('twitter:card', 'summary_large_image', 'name');
     setMeta('twitter:title', `${book.title} — ${authorDisplay}`, 'name');
