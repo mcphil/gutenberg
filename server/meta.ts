@@ -84,11 +84,22 @@ function buildMetaTags(meta: MetaData): string {
 
 function injectMeta(html: string, meta: MetaData): string {
   const tags = buildMetaTags(meta);
-  // Replace the static <title> and <meta name="description"> in the template
-  // and inject our dynamic tags right before </head>
+  // Remove all existing meta tags that we will replace with dynamic ones:
+  // - <title> (static)
+  // - <meta name="description"> (static)
+  // - All <meta property="og:*"> tags (Open Graph)
+  // - All <meta name="twitter:*"> tags (Twitter Card)
+  // - HTML comments labelling these sections (<!-- Open Graph -->, <!-- Twitter Card -->)
+  // - <link rel="canonical"> (we inject a fresh one)
+  // This prevents duplicate tags which would cause crawlers to use the wrong (generic) values.
   return html
     .replace(/<title>[^<]*<\/title>/, "") // remove static title
-    .replace(/<meta name="description"[^>]*\/>/, "") // remove static description
+    .replace(/<meta name="description"[^>]*\/>/g, "") // remove static description
+    .replace(/<meta property="og:[^>]*\/>/g, "") // remove all og: meta tags
+    .replace(/<meta name="twitter:[^>]*\/>/g, "") // remove all twitter: meta tags
+    .replace(/<link rel="canonical"[^>]*\/>/g, "") // remove existing canonical
+    .replace(/<!--\s*Open Graph\s*-->/g, "") // remove OG comment
+    .replace(/<!--\s*Twitter Card\s*-->/g, "") // remove Twitter comment
     .replace("</head>", `${tags}\n  </head>`);
 }
 

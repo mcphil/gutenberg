@@ -119,3 +119,22 @@
 
 ## Social Sharing
 - [x] Vollständige OG-Struktur für Detailansicht (og:image mit Cover, og:image:width/height, og:type=book, alle Pflichtfelder)
+- [x] Fix OG meta tags in production: explizite Express-Routen /book/:id und /author/:name vor serveStatic registriert
+- [x] Meta-Tests (server/meta.test.ts): 13 Tests für createMetaMiddleware (OG-Tags, JSON-LD, HTML-Escaping, Cache-Control)
+- [x] Fix OG meta tag injection: injectMeta entfernt jetzt alle bestehenden og:* und twitter:* Tags aus index.html vor der Injektion (verhindert Duplikate)
+- [x] 2 neue Tests fuer Duplikat-Entfernung: og:title/og:image nur einmal, canonical nur einmal
+
+## Static HTML Pre-Generation (OG Meta Tags)
+- [x] Script server/scripts/generate-static-html.ts: liest alle Buecher und Autoren aus DB, generiert dist/public/book/:id/index.html und dist/public/author/:name/index.html mit korrekten OG-Tags (3.5KB pro Datei, 31MB gesamt)
+- [x] Build-Integration: pnpm build ruft generate-static-html nach Vite-Build auf (3703 Dateien in ~30s)
+- [x] Express: /book/:id und /author/:name Meta-Middleware-Routen entfernt
+- [x] Test: lokaler Production-Build liefert korrekte OG-Tags fuer /book/46873
+
+## Build-Fix (Deployment)
+- [x] generate-static-html.ts aus Build-Command entfernt (kein DB-Zugriff im Deployment)
+- [x] HTML-Dateien werden jetzt nach client/public/book/ und client/public/author/ geschrieben (Vite kopiert sie automatisch nach dist/public/ beim Build)
+- [x] pnpm generate-static Script lokal ausgefuehrt: 3703 Dateien in client/public/
+
+## Deployment Timeout Fix
+- [x] Statische HTML-Dateien aus client/public/ entfernt (verursachten Deployment-Timeout)
+- [x] Build-Command sauber (kein generate-static-html), meta.ts mit OG-Duplikat-Entfernung ist die Loesung
