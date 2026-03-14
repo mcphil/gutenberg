@@ -1,19 +1,22 @@
 /**
  * GenerativeCover — deterministic botanical book cover.
  *
- * Design system (v4):
- *  - Thin color bar at top matching the botanical background palette
- *  - White header block with title (adaptive font size) and author
- *  - Adaptive typography: binary-search for largest font (34→14px) fitting title in ≤3 lines
- *  - Dynamic header height: grows with title, author always has proper spacing
- *  - Botanical L-system fern as background (7 color palettes, deterministic per title)
- *  - Keywords from preview text in UPPERCASE, white, no shadow
- *  - Black bottom bar with "gutenberg-navigator.de"
+ * Design system (v5 — FIXED LAYOUT):
+ *  - Every cover has IDENTICAL proportions:
+ *      • Color bar:      16px (top accent)
+ *      • White header:   140px (fixed — never changes)
+ *      • Botanical area: 396px (71% of cover height)
+ *      • Black bottom:    24px with "gutenberg-navigator.de"
+ *  - Title: always 26pt Noto Serif Bold, max 6 words → truncated with " …"
+ *  - Title+author block vertically centered in the 140px header
+ *  - 7 deterministic color palettes (hash of title)
+ *  - Botanical L-system fern as background
+ *  - UPPERCASE keyword cloud from preview text
  *
- * Typography analysis of 2,420 German Gutenberg titles:
- *  - 74% fit at 34px in ≤3 lines
- *  - Font scales from 34px down to 14px for very long titles
- *  - Header height: 115px (1-line title) → ~200px (3-line at 34px)
+ * Data-driven decision (2,395 German Gutenberg titles):
+ *  - 65.9% of titles are ≤6 words (no truncation needed)
+ *  - 26pt fits all 6-word titles in ≤2 lines at 372px width
+ *  - Fixed header = uniform visual rhythm across all covers
  */
 
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -141,11 +144,35 @@ function lsystemSegments(
   return { segments, maxDepth };
 }
 
-// ─── Adaptive typography helpers ───────────────────────────────────────────────
+// ─── Fixed layout constants (scaled from 400×560 reference) ───────────────────
+// These proportions are fixed — every cover has the same structure.
+const LAYOUT = {
+  // Reference dimensions (canvas native size for "lg")
+  REF_W: 400,
+  REF_H: 560,
+  // Fixed zones (px at reference size)
+  COLOR_BAR_H: 16,   // thin accent strip
+  HEADER_H: 140,     // white header — NEVER changes
+  BOTTOM_BAR_H: 24,  // black URL bar
+  // get botanical height: REF_H - HEADER_H - BOTTOM_BAR_H = 396px
+  // Typography
+  TITLE_FONT_PX: 26,       // fixed title size
+  TITLE_LINE_H: 34,        // 26 * 1.30 ≈ 34
+  AUTHOR_FONT_PX: 16,
+  AUTHOR_H: 20,
+  TITLE_AUTHOR_GAP: 11,
+  PADDING: 14,
+  MAX_TITLE_WORDS: 6,      // truncate after this many words
+};
 
-/**
- * Word-wrap text into lines fitting maxW pixels using a canvas 2D context.
- */
+/** Truncate title to at most MAX_TITLE_WORDS words, append " …" if cut. */
+function truncateTitle(title: string, maxWords = LAYOUT.MAX_TITLE_WORDS): string {
+  const words = title.split(/\s+/);
+  if (words.length <= maxWords) return title;
+  return words.slice(0, maxWords).join(" ") + " \u2026";
+}
+
+/** Word-wrap text into lines fitting maxW pixels using a canvas 2D context. */
 function wordWrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
@@ -163,38 +190,9 @@ function wordWrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): st
   return lines;
 }
 
-/**
- * Find the largest font size (between minSize and maxSize) that fits title
- * in at most maxLines lines within maxW pixels.
- * Uses canvas for accurate measurement (handles Unicode/umlauts).
- */
-function findBestFontSize(
-  ctx: CanvasRenderingContext2D,
-  title: string,
-  maxW: number,
-  maxSize = 34,
-  minSize = 14,
-  maxLines = 3
-): number {
-  let best = minSize;
-  let lo = minSize, hi = maxSize;
-  while (lo <= hi) {
-    const mid = (lo + hi) >> 1;
-    ctx.font = `bold ${mid}px "Noto Serif", Georgia, serif`;
-    const lines = wordWrap(ctx, title, maxW);
-    if (lines.length <= maxLines) {
-      best = mid;
-      lo = mid + 1;
-    } else {
-      hi = mid - 1;
-    }
-  }
-  return best;
-}
-
 // ─── Extract meaningful keywords from preview text ─────────────────────────────
 function extractKeywords(text: string, max = 22): string[] {
-  // Use (?<![a-zA-ZäöüÄÖÜß]) instead of \b to handle umlaut word starts (Ä, Ö, Ü)
+  // Use lookbehind/lookahead instead of \b to handle umlaut word starts (Ä, Ö, Ü)
   const matches = text.match(/(?<![a-zA-ZäöüÄÖÜß])[a-zA-ZäöüÄÖÜß]{4,}(?![a-zA-ZäöüÄÖÜß])/g) ?? [];
   const seen = new Set<string>();
   const result: string[] = [];
@@ -247,43 +245,40 @@ export function GenerativeCover({
     const H = canvas.height;
     const rng = makeRng(seed);
 
-    // ── Layout constants ──
-    const PADDING = Math.round(W * 0.035);         // ~14px at 400w
-    const MAX_TEXT_W = W - PADDING * 2;
-    const COLOR_BAR_H = Math.round(H * 0.028);     // ~16px at 560h
-    const BOTTOM_BAR_H = Math.round(H * 0.043);    // ~24px at 560h
-    const TITLE_TOP_PAD = Math.round(H * 0.022);   // ~12px
-    const TITLE_AUTHOR_GAP = Math.round(H * 0.018);// ~10px
-    const AUTHOR_BOTTOM_PAD = Math.round(H * 0.018);
-    const AUTHOR_FONT_SIZE = Math.round(W * 0.043);// ~17px at 400w
+    // ── Scale all layout constants proportionally to canvas size ──
+    const scaleW = W / LAYOUT.REF_W;
+    const scaleH = H / LAYOUT.REF_H;
 
-    // ── Find optimal title font size ──
-    const titleFontSize = findBestFontSize(ctx, title, MAX_TEXT_W, Math.round(W * 0.085), Math.round(W * 0.035), 3);
-    const titleLineH = Math.ceil(titleFontSize * 1.28);
+    const COLOR_BAR_H  = Math.round(LAYOUT.COLOR_BAR_H  * scaleH);
+    const HEADER_H     = Math.round(LAYOUT.HEADER_H     * scaleH);
+    const BOTTOM_BAR_H = Math.round(LAYOUT.BOTTOM_BAR_H * scaleH);
+    const VIS_H        = H - HEADER_H - BOTTOM_BAR_H;
 
-    ctx.font = `bold ${titleFontSize}px "Noto Serif", Georgia, serif`;
-    const titleLines = wordWrap(ctx, title, MAX_TEXT_W);
-
-    const titleBlockH = titleLines.length * titleLineH;
-
-    ctx.font = `${AUTHOR_FONT_SIZE}px "Noto Serif", Georgia, serif`;
-    const authorMetrics = ctx.measureText(author);
-    const authorH = Math.ceil(authorMetrics.actualBoundingBoxAscent + authorMetrics.actualBoundingBoxDescent);
-
-    // ── Dynamic header height ──
-    const headerContentH = TITLE_TOP_PAD + titleBlockH + TITLE_AUTHOR_GAP + authorH + AUTHOR_BOTTOM_PAD;
-    const MIN_BOTANICAL = Math.round(H * 0.46); // at least 46% of height for botanical
-    let HEADER_H = COLOR_BAR_H + headerContentH;
-    if (H - HEADER_H - BOTTOM_BAR_H < MIN_BOTANICAL) {
-      HEADER_H = H - BOTTOM_BAR_H - MIN_BOTANICAL;
-    }
-    const VIS_H = H - HEADER_H - BOTTOM_BAR_H;
+    const PADDING          = Math.round(LAYOUT.PADDING          * scaleW);
+    const MAX_TEXT_W       = W - PADDING * 2;
+    const TITLE_FONT_PX    = Math.round(LAYOUT.TITLE_FONT_PX    * scaleW);
+    const TITLE_LINE_H     = Math.round(LAYOUT.TITLE_LINE_H     * scaleH);
+    const AUTHOR_FONT_PX   = Math.round(LAYOUT.AUTHOR_FONT_PX   * scaleW);
+    const AUTHOR_H         = Math.round(LAYOUT.AUTHOR_H         * scaleH);
+    const TITLE_AUTHOR_GAP = Math.round(LAYOUT.TITLE_AUTHOR_GAP * scaleH);
 
     // ── Parse palette colors ──
     const bgTop    = parseRgb(palette[0]);
     const bgBottom = parseRgb(palette[1]);
     const brYoung  = parseRgb(palette[2]);
     const brOld    = parseRgb(palette[3]);
+
+    // ── Truncate and wrap title ──
+    const displayTitle = truncateTitle(title, LAYOUT.MAX_TITLE_WORDS);
+    ctx.font = `bold ${TITLE_FONT_PX}px "Noto Serif", Georgia, serif`;
+    const titleLines = wordWrap(ctx, displayTitle, MAX_TEXT_W);
+    const actualLines = titleLines.filter(l => l.trim().length > 0);
+
+    // ── Vertically center title+author block in the fixed header ──
+    const textBlockH = actualLines.length * TITLE_LINE_H + TITLE_AUTHOR_GAP + AUTHOR_H;
+    const availH = HEADER_H - COLOR_BAR_H;
+    const minTopPad = Math.round(LAYOUT.PADDING * scaleH);
+    const titleStartY = COLOR_BAR_H + Math.max(minTopPad, Math.round((availH - textBlockH) / 2));
 
     // ── Draw thin color bar at top ──
     ctx.fillStyle = palette[0];
@@ -299,19 +294,19 @@ export function GenerativeCover({
 
     // ── Draw title lines ──
     ctx.fillStyle = "#111111";
-    ctx.font = `bold ${titleFontSize}px "Noto Serif", Georgia, serif`;
+    ctx.font = `bold ${TITLE_FONT_PX}px "Noto Serif", Georgia, serif`;
     ctx.textBaseline = "top";
-    let y = COLOR_BAR_H + TITLE_TOP_PAD;
-    for (const line of titleLines.slice(0, 3)) {
-      ctx.fillText(line, PADDING, y);
-      y += titleLineH;
+    for (let i = 0; i < actualLines.length; i++) {
+      ctx.fillText(actualLines[i], PADDING, titleStartY + i * TITLE_LINE_H);
     }
 
     // ── Draw author line ──
+    const authorY = titleStartY + actualLines.length * TITLE_LINE_H + TITLE_AUTHOR_GAP;
+    const displayAuthor = author.length <= 42 ? author : author.slice(0, 40) + " \u2026";
     ctx.fillStyle = "#555555";
-    ctx.font = `${AUTHOR_FONT_SIZE}px "Noto Serif", Georgia, serif`;
+    ctx.font = `${AUTHOR_FONT_PX}px "Noto Serif", Georgia, serif`;
     ctx.textBaseline = "top";
-    ctx.fillText(author, PADDING, y + TITLE_AUTHOR_GAP);
+    ctx.fillText(displayAuthor, PADDING, authorY);
 
     // ── Botanical gradient background ──
     for (let py = HEADER_H; py < H - BOTTOM_BAR_H; py++) {
@@ -338,9 +333,9 @@ export function GenerativeCover({
     const minX = Math.min(...allX), maxX = Math.max(...allX);
     const minY = Math.min(...allY), maxY = Math.max(...allY);
 
-    const scaleX = (W - 20) / Math.max(maxX - minX, 1);
-    const scaleY = (VIS_H - 20) / Math.max(maxY - minY, 1);
-    const scale = Math.min(scaleX, scaleY) * 0.82;
+    const scaleXf = (W - 20) / Math.max(maxX - minX, 1);
+    const scaleYf = (VIS_H - 20) / Math.max(maxY - minY, 1);
+    const scale = Math.min(scaleXf, scaleYf) * 0.82;
 
     const renderedW = (maxX - minX) * scale;
     const offsetX = (W - renderedW) / 2 - minX * scale;
@@ -386,7 +381,7 @@ export function GenerativeCover({
     ctx.shadowColor = "transparent";
 
     for (const word of keywords) {
-      const fontSize = Math.round(11 + rng() * 11); // 11–22px
+      const fontSize = Math.round((11 + rng() * 11) * scaleW); // 11–22px scaled
       ctx.font = `bold ${fontSize}px "Noto Sans", Arial, sans-serif`;
       const metrics = ctx.measureText(word);
       const tw = Math.ceil(metrics.width);
@@ -405,7 +400,6 @@ export function GenerativeCover({
         }
       }
       if (!placed_) {
-        // Place without collision check as last resort
         const wx = Math.round(8 + rng() * Math.max(1, W - tw - 16));
         const wy = Math.round(HEADER_H + 8 + rng() * Math.max(1, H - BOTTOM_BAR_H - HEADER_H - th - 14));
         ctx.fillStyle = "rgba(255,255,255,0.92)";
@@ -417,18 +411,18 @@ export function GenerativeCover({
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, H - BOTTOM_BAR_H, W, BOTTOM_BAR_H);
 
-    const urlFontSize = Math.round(W * 0.028); // ~11px at 400w
+    const urlFontSize = Math.round(11 * scaleW);
     ctx.font = `bold ${urlFontSize}px "Noto Sans", Arial, sans-serif`;
     ctx.fillStyle = "rgba(180,180,180,0.9)";
     ctx.textBaseline = "middle";
     ctx.textAlign = "right";
-    ctx.fillText("gutenberg-navigator.de", W - 10, H - BOTTOM_BAR_H / 2);
+    ctx.fillText("gutenberg-navigator.de", W - Math.round(10 * scaleW), H - BOTTOM_BAR_H / 2);
     ctx.textAlign = "left"; // reset
 
     setRendered(true);
   }, [title, author, keywords, seed, palette]);
 
-  // Dimensions based on size prop
+  // Canvas dimensions based on size prop
   const dims = size === "sm"
     ? { w: 120, h: 168 }
     : size === "lg"

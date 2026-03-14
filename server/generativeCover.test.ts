@@ -7,6 +7,14 @@ import { describe, it, expect } from "vitest";
 
 // ─── Pure logic extracted from GenerativeCover.tsx for testability ────────────
 
+const MAX_TITLE_WORDS = 6;
+
+function truncateTitle(title: string, maxWords = MAX_TITLE_WORDS): string {
+  const words = title.split(/\s+/);
+  if (words.length <= maxWords) return title;
+  return words.slice(0, maxWords).join(" ") + " \u2026";
+}
+
 const STOPWORDS = new Set([
   "der","die","das","den","dem","des","ein","eine","einer","einem","einen","eines",
   "und","oder","aber","doch","denn","weil","wenn","als","ob","bis","seit","nach",
@@ -149,5 +157,48 @@ describe("GenerativeCover — palette selection", () => {
     const usedPalettes = new Set(titles.map(t => hashString(t) % 7));
     // With 14 titles and 7 palettes, expect at least 4 distinct palettes
     expect(usedPalettes.size).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe("GenerativeCover — truncateTitle (v5 fixed layout)", () => {
+  it("does not truncate titles with ≤6 words", () => {
+    expect(truncateTitle("Faust")).toBe("Faust");
+    expect(truncateTitle("Die Leiden des jungen Werthers")).toBe("Die Leiden des jungen Werthers");
+    expect(truncateTitle("Ein zwei drei vier fünf sechs")).toBe("Ein zwei drei vier fünf sechs");
+  });
+
+  it("truncates titles with >6 words and appends ellipsis", () => {
+    const result = truncateTitle("Der Talisman: Historischer Roman in drei Bänden");
+    expect(result).toBe("Der Talisman: Historischer Roman in drei \u2026");
+    expect(result.split(" ").length).toBe(7); // 6 words + "…"
+  });
+
+  it("truncates very long titles correctly", () => {
+    const longTitle = "Experimentelle Untersuchungen über die Frage: Ist die Furcht vor Krankheitsübertragung durch das Telephon begründet?";
+    const result = truncateTitle(longTitle);
+    expect(result).toBe("Experimentelle Untersuchungen über die Frage: Ist \u2026");
+  });
+
+  it("respects custom maxWords parameter", () => {
+    expect(truncateTitle("Ein zwei drei vier fünf sechs sieben", 4)).toBe("Ein zwei drei vier \u2026");
+    expect(truncateTitle("Ein zwei drei", 4)).toBe("Ein zwei drei");
+  });
+
+  it("handles single-word titles without truncation", () => {
+    expect(truncateTitle("Faust")).toBe("Faust");
+    expect(truncateTitle("Siddhartha")).toBe("Siddhartha");
+  });
+
+  it("handles exactly 6-word titles without truncation", () => {
+    const sixWords = "Die Leiden des jungen Werthers heute";
+    expect(truncateTitle(sixWords)).toBe(sixWords);
+    expect(truncateTitle(sixWords).endsWith("\u2026")).toBe(false);
+  });
+
+  it("handles 7-word titles with truncation", () => {
+    const sevenWords = "Die Leiden des jungen Werthers von heute";
+    const result = truncateTitle(sevenWords);
+    expect(result.endsWith("\u2026")).toBe(true);
+    expect(result.split(/\s+/).filter(w => w !== "\u2026").length).toBe(6);
   });
 });
