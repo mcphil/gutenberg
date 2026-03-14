@@ -295,7 +295,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
                     onClick={() => window.open("https://www.gutenberg.org", "_blank")}
                   >
                     <ExternalLink className="w-5 h-5" />
-                    Auf Gutenberg.org ansehen
+                    Gutenberg.org
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed max-w-md">
