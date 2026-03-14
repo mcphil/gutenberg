@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, BookOpen, Download, Sparkles, Tag, User } from "lucide-react";
+import { ArrowLeft, BookOpen, ExternalLink, Sparkles, Tag, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookCard, BookCardSkeleton } from "@/components/BookCard";
@@ -294,7 +294,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
                     className="gap-2"
                     onClick={() => window.open(`https://www.gutenberg.org/ebooks/${book.gutenbergId}`, "_blank")}
                   >
-                    <Download className="w-5 h-5" />
+                    <ExternalLink className="w-5 h-5" />
                     Auf Gutenberg.org
                   </Button>
                 </div>
@@ -320,7 +320,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
                   className="gap-2"
                   onClick={() => window.open(`https://www.gutenberg.org/ebooks/${book.gutenbergId}`, "_blank")}
                 >
-                  <Download className="w-5 h-5" />
+                  <ExternalLink className="w-5 h-5" />
                   Auf Gutenberg.org
                 </Button>
               </>

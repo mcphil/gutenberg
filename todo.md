@@ -145,3 +145,6 @@
 
 ## Sprachkonsistenz
 - [x] Englische Subjects/Tags/Kategorien in der UI auf Deutsch übersetzt: BOOKSHELF_TRANSLATIONS (126 Einträge) + SUBJECT_TRANSLATIONS (Regex+Exact, inkl. Catholic Church, Category:*) in shared/gutenberg.ts. parseSubjects/parseBookshelves wenden Übersetzung automatisch an.
+
+## UI-Fixes
+- [x] "Auf Gutenberg.org"-Button: Download-Icon durch ExternalLink-Icon ersetzt
