@@ -292,7 +292,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
                     variant="outline"
                     size="lg"
                     className="gap-2"
-                    onClick={() => window.open(`https://www.gutenberg.org/ebooks/${book.gutenbergId}`, "_blank")}
+                    onClick={() => window.open("https://www.gutenberg.org", "_blank")}
                   >
                     <ExternalLink className="w-5 h-5" />
                     Auf Gutenberg.org ansehen
@@ -300,8 +300,16 @@ export default function BookDetail({ bookId }: BookDetailProps) {
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed max-w-md">
                   <span className="font-medium">Hinweis:</span> Dieses Werk ist in Deutschland noch urheberrechtlich geschützt
-                  (§ 64 UrhG — 70 Jahre nach dem Tod des Autors). Eine direkte Lesefunktion ist daher nicht verfügbar.
-                  Das Werk kann über Project Gutenberg aufgerufen werden, das US-amerikanischem Recht unterliegt.
+                  (§ 64 UrhG). Eine direkte Lesefunktion ist daher nicht verfügbar. Das Werk ist möglicherweise über{" "}
+                  <a
+                    href="https://www.gutenberg.org"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-foreground transition-colors"
+                  >
+                    Project Gutenberg
+                  </a>{" "}
+                  abrufbar, das US-amerikanischem Recht unterliegt — bitte prüfen Sie die Verfügbarkeit dort selbst.
                 </p>
               </div>
             ) : (

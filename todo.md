@@ -148,3 +148,6 @@
 
 ## UI-Fixes
 - [x] "Auf Gutenberg.org"-Button: Download-Icon durch ExternalLink-Icon ersetzt
+
+## Rechtliche Anpassungen
+- [x] Urheberrechtshinweis: Direktlink zu gutenberg.org/ebooks/:id durch Link zur Startseite gutenberg.org ersetzt + Hinweistext angepasst (Option B)
