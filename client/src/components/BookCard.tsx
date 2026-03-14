@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { BookOpen, User, Lock } from "lucide-react";
+import { User, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import type { LocalBook } from "../../../shared/gutenberg";
-import { getAuthorDisplay, getCoverUrl, parseSubjects, translateSubject, parseAuthors, isCopyrightProtectedDE } from "../../../shared/gutenberg";
+import { getAuthorDisplay, parseSubjects, translateSubject, parseAuthors, isCopyrightProtectedDE } from "../../../shared/gutenberg";
+import { GenerativeCover } from "@/components/GenerativeCover";
 
 interface BookCardProps {
   book: LocalBook;
@@ -14,11 +15,9 @@ interface BookCardProps {
 }
 
 export function BookCard({ book, shortSummary: propSummary, onClick, compact = false }: BookCardProps) {
-  const [imgError, setImgError] = useState(false);
   const [hovered, setHovered] = useState(false);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, navigate] = useLocation();
-  const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
   const subjects = parseSubjects(book.subjects);
   const parsedAuthors = parseAuthors(book.authors);
@@ -56,18 +55,10 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
       onMouseLeave={handleMouseLeave}
     >
       {/* Cover */}
-      <div className="relative overflow-hidden bg-muted" style={{ aspectRatio: "2/3" }}>
-        {!imgError ? (
-          <img
-            src={coverUrl}
-            alt={`Cover: ${book.title}`}
-            className="absolute inset-0 w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <CoverFallback title={book.title} />
-        )}
+      <div className="relative overflow-hidden" style={{ aspectRatio: "2/3" }}>
+        <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-105">
+          <GenerativeCover title={book.title} author={author} size={compact ? "sm" : "md"} className="absolute inset-0" />
+        </div>
 
         {/* Hover overlay — summary + tags, anchored to bottom ~2/3 of cover */}
         <div
@@ -147,24 +138,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
   );
 }
 
-function CoverFallback({ title }: { title: string }) {
-  const t = title || "?";
-  const hue = Math.abs(t.charCodeAt(0) * 7 + (t.charCodeAt(1) || 0) * 13) % 360;
-  return (
-    <div
-      className="absolute inset-0 flex flex-col items-center justify-center p-3"
-      style={{ background: `oklch(0.75 0.08 ${hue})` }}
-    >
-      <BookOpen className="w-8 h-8 text-white/70 mb-2" />
-      <p
-        className="text-white text-xs text-center font-medium leading-tight line-clamp-4"
-        style={{ fontFamily: "Lora, Georgia, serif" }}
-      >
-        {title}
-      </p>
-    </div>
-  );
-}
+
 
 // ─── Skeleton ────────────────────────────────────────────────
 

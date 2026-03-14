@@ -100,3 +100,7 @@
 - [x] SEO Startseite: Keywords-Meta-Tag hinzufügen (index.html + useEffect in Home.tsx)
 - [x] SEO Startseite: H2-Überschrift hinzufügen (sr-only für Katalog und Suchergebnisse)
 - [x] Open Graph Standardbild (1200×630px) für Startseite erstellen und in Meta-Tags einbinden (og:image + twitter:card)
+
+## Cover-Vereinheitlichung
+- [x] GenerativeCover-Komponente: deterministisches Cover-Design basierend auf Buchtitel, Autor, Genre (12 Paletten, 8 Muster, 4 Ornamente)
+- [x] Alle Gutenberg-Cover-Bilder ersetzen: BookCard, BrowseMode, BookDetail, Home (Weiterlesen)

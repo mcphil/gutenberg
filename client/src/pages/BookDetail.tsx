@@ -6,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { BookCard, BookCardSkeleton } from "@/components/BookCard";
 import { trpc } from "@/lib/trpc";
 import {
-  getAuthorDisplay, parseAuthors, getAuthorYears, getCoverUrl,
+  getAuthorDisplay, parseAuthors, getAuthorYears,
   parseSubjects, parseBookshelves, translateSubject, FILTER_TOPICS,
   isCopyrightProtectedDE
 } from "../../../shared/gutenberg";
+import { GenerativeCover } from "@/components/GenerativeCover";
 import { useRecentBooks, useReadingProgress } from "@/hooks/useLocalStorage";
 
 interface BookDetailProps {
@@ -18,7 +19,6 @@ interface BookDetailProps {
 
 export default function BookDetail({ bookId }: BookDetailProps) {
   const [, navigate] = useLocation();
-  const [imgError, setImgError] = useState(false);
   const { addRecentBook } = useRecentBooks();
   const { getProgress } = useReadingProgress();
 
@@ -39,7 +39,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
       gutenbergId: book.gutenbergId,
       title: book.title,
       authors: getAuthorDisplay(book),
-      coverUrl: getCoverUrl(book),
+      coverUrl: "",
     });
 
     // Dynamic <title>
@@ -116,7 +116,6 @@ export default function BookDetail({ bookId }: BookDetailProps) {
     );
   }
 
-  const coverUrl = getCoverUrl(book);
   const authors = parseAuthors(book.authors);
   const subjects = parseSubjects(book.subjects);
   const bookshelves = parseBookshelves(book.bookshelves);
@@ -139,23 +138,8 @@ export default function BookDetail({ bookId }: BookDetailProps) {
       <div className="flex flex-col sm:flex-row gap-8">
         {/* Cover */}
         <div className="shrink-0 sm:w-48 md:w-56">
-          <div className="rounded-lg overflow-hidden shadow-lg border border-border bg-muted" style={{ aspectRatio: "2/3" }}>
-            {!imgError ? (
-              <img
-                src={coverUrl}
-                alt={`Cover: ${book.title}`}
-                className="w-full h-full object-contain"
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <div className="w-full h-full bg-muted flex flex-col items-center justify-center p-4">
-                <BookOpen className="w-10 h-10 text-muted-foreground mb-2" />
-                <p className="text-xs text-center text-muted-foreground line-clamp-4"
-                   style={{ fontFamily: "Lora, Georgia, serif" }}>
-                  {book.title}
-                </p>
-              </div>
-            )}
+          <div className="rounded-lg overflow-hidden shadow-lg" style={{ aspectRatio: "2/3" }}>
+            <GenerativeCover title={book.title} author={getAuthorDisplay(book)} size="lg" className="w-full h-full" />
           </div>
 
           {/* Reading progress */}

@@ -3,6 +3,7 @@ import { AppHeader } from "@/components/AppHeader";
 import Catalog from "./Catalog";
 import BrowseMode from "./BrowseMode";
 import { useAppPreferences } from "@/hooks/useLocalStorage";
+import { GenerativeCover } from "@/components/GenerativeCover";
 import { BookOpen, Clock, Shuffle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -121,15 +122,9 @@ export default function Home() {
                     onClick={() => navigate(`/read/${p.gutenbergId}`)}
                     className="w-full flex items-center gap-3 bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors text-left"
                   >
-                    {p.coverUrl && (
-                      <div className="w-10 shrink-0 rounded overflow-hidden bg-muted" style={{ aspectRatio: "2/3" }}>
-                        <img
-                          src={p.coverUrl}
-                          alt=""
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    )}
+                    <div className="w-10 shrink-0 rounded overflow-hidden" style={{ aspectRatio: "2/3" }}>
+                      <GenerativeCover title={p.title} size="sm" className="w-full h-full" />
+                    </div>
                     <div className="min-w-0">
                       <p className="text-xs font-medium line-clamp-2 text-foreground"
                          style={{ fontFamily: "Lora, Georgia, serif" }}>

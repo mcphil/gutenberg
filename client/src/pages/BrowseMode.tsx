@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import {
-  getAuthorDisplay, getCoverUrl, parseSubjects, translateSubject,
+  getAuthorDisplay, parseSubjects, translateSubject,
   type LocalBook, isCopyrightProtectedDE
 } from "../../../shared/gutenberg";
+import { GenerativeCover } from "@/components/GenerativeCover";
 
 interface BrowseModeProps {
   onClose: () => void;
@@ -185,10 +186,8 @@ interface BrowseSlideProps {
 }
 
 function BrowseSlide({ book, onRead, onDetail, isVisible }: BrowseSlideProps) {
-  const [imgError, setImgError] = useState(false);
   const slideRef = useRef<HTMLDivElement>(null);
   const [opacity, setOpacity] = useState(1);
-  const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
   const subjects = parseSubjects(book.subjects);
   const isProtected = isCopyrightProtectedDE(book.authors, new Date().getFullYear(), book.copyrightProtectedUntil);
@@ -228,22 +227,9 @@ function BrowseSlide({ book, onRead, onDetail, isVisible }: BrowseSlideProps) {
       <div className="browse-inner">
         {/* Cover */}
         <div className="browse-cover">
-          {!imgError ? (
-            <img
-              src={coverUrl}
-              alt={`Cover: ${book.title}`}
-              className="w-full h-full object-contain drop-shadow-xl"
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-muted rounded-lg">
-              <BookOpen className="w-12 h-12 text-muted-foreground mb-3" />
-              <p className="text-base text-center font-medium text-foreground"
-                 style={{ fontFamily: "Lora, Georgia, serif" }}>
-                {book.title}
-              </p>
-            </div>
-          )}
+          <div className="w-full h-full drop-shadow-xl rounded overflow-hidden">
+            <GenerativeCover title={book.title} author={author} size="lg" className="w-full h-full" />
+          </div>
         </div>
 
         {/* Info */}
