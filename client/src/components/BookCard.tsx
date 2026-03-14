@@ -49,13 +49,13 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
       onMouseLeave={handleMouseLeave}
     >
       {/* Cover */}
-      <div className="relative overflow-hidden" style={{ aspectRatio: "2/3" }}>
+      <div className="relative overflow-hidden" style={{ aspectRatio: "5/7" }}>
         <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-105">
           <figure className="absolute inset-0 m-0">
             <img
               src={`/api/covers/${book.gutenbergId}`}
               alt={`Cover von ${book.title}`}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
               loading="lazy"
               decoding="async"
               width={200}
@@ -149,7 +149,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
 export function BookCardSkeleton() {
   return (
     <div className="book-card">
-      <div className="skeleton" style={{ aspectRatio: "2/3" }} />
+      <div className="skeleton" style={{ aspectRatio: "5/7" }} />
       <div className="p-3 space-y-2">
         <div className="skeleton h-4 w-full rounded" />
         <div className="skeleton h-3 w-2/3 rounded" />

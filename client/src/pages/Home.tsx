@@ -121,11 +121,11 @@ export default function Home() {
                     onClick={() => navigate(`/read/${p.gutenbergId}`)}
                     className="w-full flex items-center gap-3 bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors text-left"
                   >
-                    <div className="w-10 shrink-0 rounded overflow-hidden" style={{ aspectRatio: "2/3" }}>
+                    <div className="w-10 shrink-0 rounded overflow-hidden" style={{ aspectRatio: "5/7" }}>
                       <img
                         src={`/api/covers/${p.gutenbergId}`}
                         alt={`Cover von ${p.title}`}
-                        className="w-full h-full object-contain"
+                        className="w-full h-full object-cover"
                         loading="lazy"
                         decoding="async"
                         width={80}

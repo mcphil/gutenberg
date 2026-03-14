@@ -170,7 +170,7 @@
     box-shadow: 0 8px 24px oklch(0 0 0 / 0.10);
   }
   .book-cover {
-    aspect-ratio: 2/3;
+    aspect-ratio: 5/7;
     object-fit: cover;
     width: 100%;
     background-color: var(--muted);

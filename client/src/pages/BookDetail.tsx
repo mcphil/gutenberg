@@ -164,12 +164,12 @@ export default function BookDetail({ bookId }: BookDetailProps) {
       <div className="flex flex-col sm:flex-row gap-8">
         {/* Cover */}
         <div className="shrink-0 sm:w-48 md:w-56">
-          <div className="rounded-lg overflow-hidden shadow-lg" style={{ aspectRatio: "2/3" }}>
+          <div className="rounded-lg overflow-hidden shadow-lg" style={{ aspectRatio: "5/7" }}>
             <figure className="w-full h-full m-0">
               <img
                 src={`/api/covers/${book.gutenbergId}`}
                 alt={`Cover von ${book.title}`}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-cover"
                 loading="eager"
                 decoding="async"
                 width={400}
@@ -361,7 +361,7 @@ function BookDetailSkeleton() {
     <div className="container py-6 max-w-4xl mx-auto">
       <div className="skeleton h-8 w-32 rounded mb-6" />
       <div className="flex flex-col sm:flex-row gap-8">
-        <div className="skeleton shrink-0 sm:w-48 md:w-56 rounded-lg" style={{ aspectRatio: "2/3" }} />
+        <div className="skeleton shrink-0 sm:w-48 md:w-56 rounded-lg" style={{ aspectRatio: "5/7" }} />
         <div className="flex-1 space-y-3">
           <div className="skeleton h-8 w-3/4 rounded" />
           <div className="skeleton h-4 w-1/2 rounded" />
