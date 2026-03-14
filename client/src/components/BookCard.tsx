@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { User, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { trpc } from "@/lib/trpc";
 import type { LocalBook } from "../../../shared/gutenberg";
 import { getAuthorDisplay, parseSubjects, translateSubject, parseAuthors, isCopyrightProtectedDE } from "../../../shared/gutenberg";
 import { GenerativeCover } from "@/components/GenerativeCover";
@@ -34,13 +33,9 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
     setHovered(false);
   }, []);
 
-  // Fetch summary on first hover, cached indefinitely
-  const { data: cachedSummary } = trpc.summaries.getCached.useQuery(
-    { gutenbergId: book.gutenbergId },
-    { enabled: hovered, staleTime: Infinity }
-  );
-
-  const shortSummary = propSummary ?? cachedSummary?.shortSummary ?? null;
+  // shortSummary is now included directly in the book list response via LEFT JOIN
+  // (avoids N+1 queries — no separate getCached call needed per card).
+  const shortSummary = propSummary ?? book.shortSummary ?? null;
   const isProtected = isCopyrightProtectedDE(book.authors, new Date().getFullYear(), book.copyrightProtectedUntil);
 
   return (

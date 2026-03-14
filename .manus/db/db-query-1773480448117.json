@@ -1,0 +1,30 @@
+{
+  "query": "SELECT gutenbergId, shortSummary FROM book_summaries WHERE shortSummary IS NOT NULL LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute SELECT gutenbergId, shortSummary FROM book_summaries WHERE shortSummary IS NOT NULL LIMIT 5;",
+  "rows": [
+    {
+      "gutenbergId": "5740",
+      "shortSummary": "Der \"Tractatus Logico-Philosophicus\" ist ein philosophisches Werk aus dem frühen 20. Jahrhundert, das die Beziehung zwischen Sprache und Realität sowie die Grenzen der Wissenschaft untersucht."
+    },
+    {
+      "gutenbergId": "24746",
+      "shortSummary": "Dieser Band aus der Mitte des 19. Jahrhunderts ist ein wissenschaftliches Reisewerk, das sich mit der Naturgeschichte und den Kulturen Südamerikas befasst."
+    },
+    {
+      "gutenbergId": "20051",
+      "shortSummary": "Dieser Band präsentiert eine Sammlung deutscher Volksmärchen aus dem 19. Jahrhundert, die von Jacob und Wilhelm Grimm zusammengetragen wurden. Er umfasst Erzählungen mit fantastischen Elementen und moralischen Untertönen."
+    },
+    {
+      "gutenbergId": "24571",
+      "shortSummary": "„Der Struwwelpeter“ ist eine Sammlung von illustrierten Kindergeschichten und Gedichten aus der Biedermeierzeit, die Fehlverhalten und dessen Konsequenzen thematisiert."
+    },
+    {
+      "gutenbergId": "31284",
+      "shortSummary": "Dieses Werk der erotischen Literatur aus der Belle Époque schildert die Erfahrungen einer jungen Frau in der Wiener Halbwelt. Es behandelt Themen wie Sexualität und soziale Normen des späten 19. Jahrhunderts."
+    }
+  ],
+  "messages": [],
+  "stdout": "gutenbergId\tshortSummary\n5740\tDer \"Tractatus Logico-Philosophicus\" ist ein philosophisches Werk aus dem frühen 20. Jahrhundert, das die Beziehung zwischen Sprache und Realität sowie die Grenzen der Wissenschaft untersucht.\n24746\tDieser Band aus der Mitte des 19. Jahrhunderts ist ein wissenschaftliches Reisewerk, das sich mit der Naturgeschichte und den Kulturen Südamerikas befasst.\n20051\tDieser Band präsentiert eine Sammlung deutscher Volksmärchen aus dem 19. Jahrhundert, die von Jacob und Wilhelm Grimm zusammengetragen wurden. Er umfasst Erzählungen mit fantastischen Elementen und moralischen Untertönen.\n24571\t„Der Struwwelpeter“ ist eine Sammlung von illustrierten Kindergeschichten und Gedichten aus der Biedermeierzeit, die Fehlverhalten und dessen Konsequenzen thematisiert.\n31284\tDieses Werk der erotischen Literatur aus der Belle Époque schildert die Erfahrungen einer jungen Frau in der Wiener Halbwelt. Es behandelt Themen wie Sexualität und soziale Normen des späten 19. Jahrhunderts.\n",
+  "stderr": "",
+  "execution_time_ms": 52
+}

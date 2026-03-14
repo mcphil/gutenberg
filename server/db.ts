@@ -77,53 +77,76 @@ export async function listBooks(opts: BookListOptions): Promise<{ books: Book[];
 
   const offset = (opts.page - 1) * PAGE_SIZE;
 
-  // Build WHERE conditions
+  // Build WHERE conditions using raw SQL with `b.` alias (table is aliased below)
   const conditions: ReturnType<typeof sql>[] = [
-    sql`${books.type} = 'Text'`,
+    sql`b.type = 'Text'`,
   ];
 
   if (opts.search) {
     const term = `%${opts.search}%`;
-    conditions.push(sql`(${books.title} LIKE ${term} OR ${books.authors} LIKE ${term})`);
+    conditions.push(sql`(b.title LIKE ${term} OR b.authors LIKE ${term})`);
   }
 
   if (opts.topic) {
     const term = `%${opts.topic}%`;
-    conditions.push(sql`(${books.subjects} LIKE ${term} OR ${books.bookshelves} LIKE ${term})`);
+    conditions.push(sql`(b.subjects LIKE ${term} OR b.bookshelves LIKE ${term})`);
   }
   if (opts.subject) {
     // Exact subject tag: match books whose semicolon-separated subjects field contains this tag
     const term = `%${opts.subject}%`;
-    conditions.push(sql`${books.subjects} LIKE ${term}`);
+    conditions.push(sql`b.subjects LIKE ${term}`);
   }
 
   const whereClause = conditions.length > 0
     ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
     : sql``;
 
-  // Sort
+  // Sort — use `b.` alias
   let orderClause: ReturnType<typeof sql>;
   if (opts.sort === "ascending") {
-    orderClause = sql`ORDER BY ${books.title} ASC`;
+    orderClause = sql`ORDER BY b.title ASC`;
   } else if (opts.sort === "descending") {
-    orderClause = sql`ORDER BY ${books.title} DESC`;
+    orderClause = sql`ORDER BY b.title DESC`;
   } else if (opts.sort === "random") {
     orderClause = sql`ORDER BY RAND()`;
   } else {
     // "popular" — sort by gutenbergId DESC as a proxy (higher IDs = more recently added)
-    orderClause = sql`ORDER BY ${books.gutenbergId} DESC`;
+    orderClause = sql`ORDER BY b.gutenbergId DESC`;
   }
+
+  // For count, rebuild conditions without the `b.` alias
+  const countConditions: ReturnType<typeof sql>[] = [
+    sql`type = 'Text'`,
+  ];
+  if (opts.search) {
+    const term = `%${opts.search}%`;
+    countConditions.push(sql`(title LIKE ${term} OR authors LIKE ${term})`);
+  }
+  if (opts.topic) {
+    const term = `%${opts.topic}%`;
+    countConditions.push(sql`(subjects LIKE ${term} OR bookshelves LIKE ${term})`);
+  }
+  if (opts.subject) {
+    const term = `%${opts.subject}%`;
+    countConditions.push(sql`subjects LIKE ${term}`);
+  }
+  const countWhereClause = countConditions.length > 0
+    ? sql`WHERE ${sql.join(countConditions, sql` AND `)}`
+    : sql``;
 
   // db.execute returns [rows, fields] — destructure to get just the rows array
   const [countResult] = await db.execute(
-    sql`SELECT COUNT(*) as total FROM books ${whereClause}`
+    sql`SELECT COUNT(*) as total FROM books ${countWhereClause}`
   );
   const total = (countResult as unknown as { total: number }[])[0]?.total ?? 0;
 
+  // LEFT JOIN book_summaries to include shortSummary in one query (avoids N+1)
   const [bookRows] = await db.execute(
-    sql`SELECT * FROM books ${whereClause} ${orderClause} LIMIT ${PAGE_SIZE} OFFSET ${offset}`
+    sql`SELECT b.*, bs.shortSummary
+        FROM books b
+        LEFT JOIN book_summaries bs ON bs.gutenbergId = b.gutenbergId
+        ${whereClause} ${orderClause} LIMIT ${PAGE_SIZE} OFFSET ${offset}`
   );
-
   return {
     books: bookRows as unknown as Book[],
     total: Number(total),

@@ -36,6 +36,11 @@ export interface LocalBook {
    * YYYY  = protected until end of that year.
    */
   copyrightProtectedUntil: number | null;
+  /**
+   * Pre-generated short summary (German). Included in list queries via LEFT JOIN
+   * on book_summaries so covers render correct keywords without extra requests.
+   */
+  shortSummary?: string | null;
 }
 
 export interface BookListResult {

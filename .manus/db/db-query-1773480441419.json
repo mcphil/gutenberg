@@ -1,0 +1,13 @@
+{
+  "query": "SELECT COUNT(*) as total_with_summary FROM book_summaries WHERE shortSummary IS NOT NULL AND shortSummary != '';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute SELECT COUNT(*) as total_with_summary FROM book_summaries WHERE shortSummary IS NOT NULL AND shortSummary != '';",
+  "rows": [
+    {
+      "total_with_summary": "2420"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_with_summary\n2420\n",
+  "stderr": "",
+  "execution_time_ms": 138
+}

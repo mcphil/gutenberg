@@ -192,12 +192,8 @@ function BrowseSlide({ book, onRead, onDetail, isVisible }: BrowseSlideProps) {
   const subjects = parseSubjects(book.subjects);
   const isProtected = isCopyrightProtectedDE(book.authors, new Date().getFullYear(), book.copyrightProtectedUntil);
 
-  // Only fetch summary when slide is near-visible (lazy)
-  const { data: cachedSummary } = trpc.summaries.getCached.useQuery(
-    { gutenbergId: book.gutenbergId },
-    { enabled: isVisible, staleTime: Infinity }
-  );
-  const shortSummary = cachedSummary?.shortSummary ?? null;
+  // shortSummary is now included in the book list response via LEFT JOIN (no extra query needed)
+  const shortSummary = book.shortSummary ?? null;
 
   // Fade based on how much of the slide is visible
   useEffect(() => {
