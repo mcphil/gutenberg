@@ -100,7 +100,7 @@ function injectMeta(html: string, meta: MetaData): string {
     .replace(/<link rel="canonical"[^>]*\/>/g, "") // remove existing canonical
     .replace(/<!--\s*Open Graph\s*-->/g, "") // remove OG comment
     .replace(/<!--\s*Twitter Card\s*-->/g, "") // remove Twitter comment
-    .replace("</head>", `${tags}\n  </head>`);
+    .replace("</head>", `<!-- ssr-meta-injected -->\n  ${tags}\n  </head>`);
 }
 
 // ─── Book meta builder ────────────────────────────────────────────────────────

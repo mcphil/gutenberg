@@ -138,3 +138,7 @@
 ## Deployment Timeout Fix
 - [x] Statische HTML-Dateien aus client/public/ entfernt (verursachten Deployment-Timeout)
 - [x] Build-Command sauber (kein generate-static-html), meta.ts mit OG-Duplikat-Entfernung ist die Loesung
+
+## Deployment-Verifikation
+- [x] X-App-Version Header in Express-Antworten eingebaut (verifizierbar mit curl -I | grep x-app-version)
+- [x] OG-Injection-Marker <!-- ssr-meta-injected --> in HTML eingebaut (verifizierbar mit curl | grep ssr-meta-injected)

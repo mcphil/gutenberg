@@ -37,6 +37,13 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Version marker — verifiable with: curl -I https://gutenberg-navigator.de/book/:id | grep x-app-version
+  const APP_VERSION = "2026-03-14-og-fix";
+  app.use((_req, res, next) => {
+    res.setHeader("X-App-Version", APP_VERSION);
+    next();
+  });
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
