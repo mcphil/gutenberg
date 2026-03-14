@@ -3,10 +3,10 @@ import { useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { BookCard, BookCardSkeleton } from "@/components/BookCard";
 import { FilterPanel } from "@/components/FilterPanel";
-import { ChevronLeft, ChevronRight, BookOpen, Sparkles, X, Tag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, X, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getAuthorDisplay, getCoverUrl, translateSubject, type LocalBook } from "../../../shared/gutenberg";
+import { getAuthorDisplay, translateSubject, type LocalBook } from "../../../shared/gutenberg";
 
 interface CatalogProps {
   view: "grid" | "list";
@@ -155,17 +155,10 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
 // ─── List Row ────────────────────────────────────────────────
 
 function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
-  const [imgError, setImgError] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const coverUrl = getCoverUrl(book);
   const author = getAuthorDisplay(book);
-
-  const { data: cachedSummary } = trpc.summaries.getCached.useQuery(
-    { gutenbergId: book.gutenbergId },
-    { enabled: hovered, staleTime: Infinity }
-  );
-
-  const shortSummary = cachedSummary?.shortSummary ?? null;
+  // shortSummary is included in the book list response via LEFT JOIN (no extra query needed)
+  const shortSummary = book.shortSummary ?? null;
 
   return (
     <div
@@ -178,20 +171,18 @@ function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
       onMouseLeave={() => setHovered(false)}
     >
       {/* Mini cover */}
-      <div className="shrink-0 w-14 rounded overflow-hidden bg-muted" style={{ aspectRatio: "2/3" }}>
-        {!imgError ? (
+      <div className="shrink-0 w-14 rounded overflow-hidden" style={{ aspectRatio: "2/3" }}>
+        <figure className="w-full h-full m-0">
           <img
-            src={coverUrl}
-            alt={`Cover: ${book.title}`}
-            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+            src={`/api/covers/${book.gutenbergId}`}
+            alt={`Cover von ${book.title}`}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
-            onError={() => setImgError(true)}
+            decoding="async"
+            width={56}
+            height={84}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted">
-            <BookOpen className="w-5 h-5 text-muted-foreground" />
-          </div>
-        )}
+        </figure>
       </div>
 
       {/* Info */}

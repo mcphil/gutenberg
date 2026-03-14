@@ -2,7 +2,7 @@ import { useParams, useLocation } from "wouter";
 import { ArrowLeft, BookOpen, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
-import { getAuthorYears, parseAuthors, getCoverUrlById } from "../../../shared/gutenberg";
+import { getAuthorYears, parseAuthors } from "../../../shared/gutenberg";
 import type { LocalBook } from "../../../shared/gutenberg";
 import { BookCard } from "@/components/BookCard";
 

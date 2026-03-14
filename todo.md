@@ -108,4 +108,5 @@
 ## Statische Cover-Auslieferung
 - [x] Batch-render alle fehlenden WebP-Cover via server-seitigem Script
 - [x] GenerativeCover Canvas durch semantisches figure/img-Tag ersetzen (BookCard, BrowseMode, BookDetail, Home)
-- [ ] GenerativeCover Canvas-Komponente entfernen (nicht mehr benötigt)
+- [x] GenerativeCover Canvas-Komponente entfernen (nicht mehr benötigt)
+- [x] Alle Views auf WebP-Cover prüfen und vereinheitlichen

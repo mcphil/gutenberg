@@ -38,7 +38,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
       gutenbergId: book.gutenbergId,
       title: book.title,
       authors: getAuthorDisplay(book),
-      coverUrl: "",
+      coverUrl: `/api/covers/${book.gutenbergId}`,
     });
 
     // Dynamic <title>
