@@ -110,3 +110,6 @@
 - [x] GenerativeCover Canvas durch semantisches figure/img-Tag ersetzen (BookCard, BrowseMode, BookDetail, Home)
 - [x] GenerativeCover Canvas-Komponente entfernen (nicht mehr benötigt)
 - [x] Alle Views auf WebP-Cover prüfen und vereinheitlichen
+
+## Cover-Seitenverhältnis
+- [x] Alle Cover-Container auf 2:3 aspect-ratio und object-contain korrigieren (kein Anschneiden)

@@ -55,7 +55,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
             <img
               src={`/api/covers/${book.gutenbergId}`}
               alt={`Cover von ${book.title}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               loading="lazy"
               decoding="async"
               width={200}

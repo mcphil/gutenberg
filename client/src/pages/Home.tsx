@@ -125,7 +125,7 @@ export default function Home() {
                       <img
                         src={`/api/covers/${p.gutenbergId}`}
                         alt={`Cover von ${p.title}`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         loading="lazy"
                         decoding="async"
                         width={80}

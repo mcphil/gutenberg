@@ -222,19 +222,17 @@ function BrowseSlide({ book, onRead, onDetail, isVisible }: BrowseSlideProps) {
       <div className="browse-inner">
         {/* Cover */}
         <div className="browse-cover">
-          <div className="w-full h-full drop-shadow-xl rounded overflow-hidden">
-            <figure className="w-full h-full m-0">
-              <img
-                src={`/api/covers/${book.gutenbergId}`}
-                alt={`Cover von ${book.title}`}
-                className="w-full h-full object-cover"
-                loading="eager"
-                decoding="async"
-                width={400}
-                height={560}
-              />
-            </figure>
-          </div>
+          <figure className="m-0 drop-shadow-xl">
+            <img
+              src={`/api/covers/${book.gutenbergId}`}
+              alt={`Cover von ${book.title}`}
+              className="block rounded"
+              loading="eager"
+              decoding="async"
+              width={400}
+              height={560}
+            />
+          </figure>
         </div>
 
         {/* Info */}

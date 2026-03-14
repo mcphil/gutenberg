@@ -169,7 +169,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
               <img
                 src={`/api/covers/${book.gutenbergId}`}
                 alt={`Cover von ${book.title}`}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 loading="eager"
                 decoding="async"
                 width={400}
