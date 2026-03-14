@@ -1,5 +1,7 @@
 User-agent: *
 Allow: /
 
-# Dynamic sitemap index — includes all book and author pages
-Sitemap: https://gutenberg-navigator.de/sitemap.xml
+# Hinweis: Die Infrastruktur liefert /sitemap.xml automatisch aus.
+# Die vollständige dynamische Sitemap (2.395 Bücher + 1.255 Autoren) ist unter /api/sitemap.xml verfügbar
+# und wurde direkt in der Google Search Console eingetragen.
+Sitemap: https://gutenberg-navigator.de/api/sitemap.xml

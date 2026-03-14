@@ -100,11 +100,11 @@ async function startServer() {
     }
   });
 
-  // Dynamic sitemaps
-  app.get("/sitemap.xml", serveSitemapIndex);
-  app.get("/sitemap-static.xml", serveStaticSitemap);
-  app.get("/sitemap-books.xml", serveBooksSitemap);
-  app.get("/sitemap-authors.xml", serveAuthorsSitemap);
+  // Dynamic sitemaps — served under /api/sitemap/* to bypass infrastructure-level static sitemap
+  app.get("/api/sitemap.xml", serveSitemapIndex);
+  app.get("/api/sitemap-static.xml", serveStaticSitemap);
+  app.get("/api/sitemap-books.xml", serveBooksSitemap);
+  app.get("/api/sitemap-authors.xml", serveAuthorsSitemap);
 
   // tRPC API
   app.use(

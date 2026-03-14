@@ -50,9 +50,9 @@ export async function serveSitemapIndex(_req: Request, res: Response): Promise<v
   const xml = [
     xmlHeader(),
     '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n',
-    `  <sitemap>\n    <loc>${DOMAIN}/sitemap-static.xml</loc>\n    <lastmod>${t}</lastmod>\n  </sitemap>\n`,
-    `  <sitemap>\n    <loc>${DOMAIN}/sitemap-books.xml</loc>\n    <lastmod>${t}</lastmod>\n  </sitemap>\n`,
-    `  <sitemap>\n    <loc>${DOMAIN}/sitemap-authors.xml</loc>\n    <lastmod>${t}</lastmod>\n  </sitemap>\n`,
+    `  <sitemap>\n    <loc>${DOMAIN}/api/sitemap-static.xml</loc>\n    <lastmod>${t}</lastmod>\n  </sitemap>\n`,
+    `  <sitemap>\n    <loc>${DOMAIN}/api/sitemap-books.xml</loc>\n    <lastmod>${t}</lastmod>\n  </sitemap>\n`,
+    `  <sitemap>\n    <loc>${DOMAIN}/api/sitemap-authors.xml</loc>\n    <lastmod>${t}</lastmod>\n  </sitemap>\n`,
     "</sitemapindex>",
   ].join("");
 
