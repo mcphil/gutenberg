@@ -99,3 +99,4 @@
 - [x] SEO Startseite: Titel auf 30-60 Zeichen erweitern (49 Zeichen: "Gutenberg Navigator — Klassiker kostenlos lesen")
 - [x] SEO Startseite: Keywords-Meta-Tag hinzufügen (index.html + useEffect in Home.tsx)
 - [x] SEO Startseite: H2-Überschrift hinzufügen (sr-only für Katalog und Suchergebnisse)
+- [x] Open Graph Standardbild (1200×630px) für Startseite erstellen und in Meta-Tags einbinden (og:image + twitter:card)
