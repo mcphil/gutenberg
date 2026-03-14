@@ -238,8 +238,7 @@ function BrowseSlide({ book, onRead, onDetail, isVisible }: BrowseSlideProps) {
         {/* Info */}
         <div className="browse-info">
           <h2
-            className="text-xl sm:text-2xl font-semibold text-foreground leading-tight mb-1"
-            style={{ fontFamily: "Lora, Georgia, serif" }}
+            className="text-xl sm:text-2xl font-semibold text-foreground leading-tight mb-1 font-lora"
           >
             {book.title}
           </h2>

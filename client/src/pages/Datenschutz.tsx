@@ -13,7 +13,7 @@ export default function Datenschutz() {
           </Link>
         </Button>
 
-        <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: "Lora, Georgia, serif" }}>
+        <h1 className="text-3xl font-bold mb-2 font-lora">
           Datenschutzerklärung
         </h1>
         <p className="text-sm text-muted-foreground mb-8">Stand: März 2026</p>

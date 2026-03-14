@@ -151,3 +151,6 @@
 
 ## Rechtliche Anpassungen
 - [x] Urheberrechtshinweis: Direktlink zu gutenberg.org/ebooks/:id durch Link zur Startseite gutenberg.org ersetzt + Hinweistext angepasst (Option B)
+
+## Code-Qualität
+- [x] Alle statischen Inline-Styles aus React-Komponenten in CSS-Klassen ausgelagert (font-lora, aspect-book, reader-container, reader-toolbar, reader-icon-btn, reader-text, reader-progress-track etc. in index.css). Nur legitim dynamische Werte (progress width %, opacity, palette-Farben) bleiben als Inline-Styles.

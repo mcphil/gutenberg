@@ -73,8 +73,7 @@ export default function Home() {
             <div className="flex items-center justify-center gap-2 mb-3">
               <BookOpen className="w-7 h-7 text-primary" />
               <h1
-                className="text-2xl sm:text-3xl font-semibold text-foreground"
-                style={{ fontFamily: "Lora, Georgia, serif" }}
+                className="text-2xl sm:text-3xl font-semibold text-foreground font-lora"
               >
                 Gutenberg Navigator
               </h1>
@@ -104,7 +103,7 @@ export default function Home() {
             </div>
             <div className="flex gap-3 overflow-x-auto pt-3 pb-2 px-1 -mx-1">
               {recentProgress.map((p) => (
-                <div key={p.gutenbergId} className="shrink-0 relative group/card" style={{ minWidth: 220 }}>
+                <div key={p.gutenbergId} className="shrink-0 relative group/card home-carousel-card">
                   {/* Delete button — appears on hover */}
                   <button
                     onClick={(e) => {
@@ -121,7 +120,7 @@ export default function Home() {
                     onClick={() => navigate(`/read/${p.gutenbergId}`)}
                     className="w-full flex items-center gap-3 bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors text-left"
                   >
-                    <div className="w-10 shrink-0 rounded overflow-hidden" style={{ aspectRatio: "5/7" }}>
+                    <div className="w-10 shrink-0 rounded overflow-hidden aspect-book">
                       <img
                         src={`/api/covers/${p.gutenbergId}`}
                         alt={`Cover von ${p.title}`}
@@ -133,8 +132,7 @@ export default function Home() {
                       />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-medium line-clamp-2 text-foreground"
-                         style={{ fontFamily: "Lora, Georgia, serif" }}>
+                      <p className="text-xs font-medium line-clamp-2 text-foreground font-lora">
                         {p.title}
                       </p>
                       <div className="flex items-center gap-1.5 mt-1.5">

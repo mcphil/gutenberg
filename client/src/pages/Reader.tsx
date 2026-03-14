@@ -298,20 +298,16 @@ export default function Reader({ bookId }: ReaderProps) {
 
   return (
     <div
-      className="flex flex-col"
-      style={{ height: "100dvh", background: outerBg, color: theme.text }}
+      className={`flex flex-col reader-container reader-theme-${prefs.theme}`}
+      style={{ height: "100dvh" }}
     >
       {/* Toolbar */}
       <div
-        className="flex items-center gap-2 px-3 py-2 border-b shrink-0"
-        style={{
-          background: prefs.theme === "dark" ? "#252320" : "#F5F0E8",
-          borderColor: prefs.theme === "dark" ? "#3A3630" : "#E0D8CC",
-        }}
+        className="flex items-center gap-2 px-3 py-2 border-b shrink-0 reader-toolbar"
       >
         <Button
-          variant="ghost" size="icon" className="h-8 w-8 shrink-0"
-          style={{ color: theme.text }}
+          variant="ghost" size="icon"
+          className="h-8 w-8 shrink-0 reader-icon-btn"
           onClick={() => navigate(`/book/${bookId}`)}
           aria-label="Zurück"
         >
@@ -321,8 +317,8 @@ export default function Reader({ bookId }: ReaderProps) {
         {/* Prev arrow (paginated only) */}
         {!isScroll && (
           <Button
-            variant="ghost" size="icon" className="h-8 w-8 shrink-0"
-            style={{ color: theme.text }}
+            variant="ghost" size="icon"
+            className="h-8 w-8 shrink-0 reader-icon-btn"
             onClick={() => renditionRef.current?.prev()}
             aria-label="Vorherige Seite"
           >
@@ -331,21 +327,20 @@ export default function Reader({ bookId }: ReaderProps) {
         )}
 
         <p
-          className="flex-1 text-sm font-medium truncate"
-          style={{ fontFamily: "Lora, Georgia, serif", color: theme.text }}
+          className="flex-1 text-sm font-medium truncate font-lora reader-text"
         >
           {bookTitle || "Lädt…"}
         </p>
 
-        <span className="text-xs shrink-0" style={{ color: `${theme.text}99` }}>
+        <span className="text-xs shrink-0 reader-text-muted">
           {currentPage}%
         </span>
 
         {/* Next arrow (paginated only) */}
         {!isScroll && (
           <Button
-            variant="ghost" size="icon" className="h-8 w-8 shrink-0"
-            style={{ color: theme.text }}
+            variant="ghost" size="icon"
+            className="h-8 w-8 shrink-0 reader-icon-btn"
             onClick={() => renditionRef.current?.next()}
             aria-label="Nächste Seite"
           >
@@ -355,8 +350,8 @@ export default function Reader({ bookId }: ReaderProps) {
 
         {/* Mode toggle */}
         <Button
-          variant="ghost" size="icon" className="h-8 w-8 shrink-0"
-          style={{ color: theme.text }}
+          variant="ghost" size="icon"
+          className="h-8 w-8 shrink-0 reader-icon-btn"
           onClick={handleToggleMode}
           title={isScroll ? "Zu Blätter-Modus wechseln" : "Zu Scroll-Modus wechseln"}
           aria-label={isScroll ? "Zu Blätter-Modus wechseln" : "Zu Scroll-Modus wechseln"}
@@ -366,8 +361,8 @@ export default function Reader({ bookId }: ReaderProps) {
 
         {/* Bookmark */}
         <Button
-          variant="ghost" size="icon" className="h-8 w-8 shrink-0"
-          style={{ color: theme.text }}
+          variant="ghost" size="icon"
+          className="h-8 w-8 shrink-0 reader-icon-btn"
           onClick={handleToggleBookmark}
           aria-label={isBookmarked ? "Lesezeichen entfernen" : "Lesezeichen setzen"}
         >
@@ -378,8 +373,8 @@ export default function Reader({ bookId }: ReaderProps) {
         <Popover open={showSettings} onOpenChange={setShowSettings}>
           <PopoverTrigger asChild>
             <Button
-              variant="ghost" size="icon" className="h-8 w-8 shrink-0"
-              style={{ color: theme.text }}
+              variant="ghost" size="icon"
+              className="h-8 w-8 shrink-0 reader-icon-btn"
               aria-label="Leseeinstellungen"
             >
               <Type className="w-4 h-4" />
@@ -392,8 +387,8 @@ export default function Reader({ bookId }: ReaderProps) {
 
         {/* Fullscreen */}
         <Button
-          variant="ghost" size="icon" className="h-8 w-8 shrink-0 hidden sm:flex"
-          style={{ color: theme.text }}
+          variant="ghost" size="icon"
+          className="h-8 w-8 shrink-0 hidden sm:flex reader-icon-btn"
           onClick={handleFullscreen}
           aria-label={isFullscreen ? "Vollbild beenden" : "Vollbild"}
         >
@@ -402,13 +397,10 @@ export default function Reader({ bookId }: ReaderProps) {
       </div>
 
       {/* Progress bar */}
-      <div className="h-0.5 shrink-0" style={{ background: prefs.theme === "dark" ? "#3A3630" : "#E0D8CC" }}>
+      <div className="h-0.5 shrink-0 reader-progress-track">
         <div
-          className="h-full transition-all duration-500"
-          style={{
-            width: `${currentPage}%`,
-            background: prefs.theme === "dark" ? "#C8A97E" : "#7B4F2E",
-          }}
+          className="h-full transition-all duration-500 reader-progress-fill"
+          style={{ width: `${currentPage}%` }}
         />
       </div>
 

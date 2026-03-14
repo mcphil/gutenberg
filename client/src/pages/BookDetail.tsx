@@ -166,7 +166,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
       <div className="flex flex-col sm:flex-row gap-8">
         {/* Cover */}
         <div className="shrink-0 sm:w-48 md:w-56">
-          <div className="rounded-lg overflow-hidden shadow-lg" style={{ aspectRatio: "5/7" }}>
+          <div className="rounded-lg overflow-hidden shadow-lg aspect-book">
             <figure className="w-full h-full m-0">
               <img
                 src={`/api/covers/${book.gutenbergId}`}
@@ -200,8 +200,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
         {/* Info */}
         <div className="flex-1 min-w-0">
           <h1
-            className="text-2xl md:text-3xl font-semibold text-foreground leading-tight mb-3"
-            style={{ fontFamily: "Lora, Georgia, serif" }}
+            className="text-2xl md:text-3xl font-semibold text-foreground leading-tight mb-3 font-lora"
           >
             {book.title}
           </h1>
@@ -341,8 +340,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
       {(relatedLoading || (relatedBooks && relatedBooks.length > 0)) && (
         <div className="mt-10 pt-8 border-t border-border">
           <h2
-            className="text-lg font-semibold text-foreground mb-5"
-            style={{ fontFamily: "Lora, Georgia, serif" }}
+            className="text-lg font-semibold text-foreground mb-5 font-lora"
           >
             Ähnliche Bücher
           </h2>
@@ -371,7 +369,7 @@ function BookDetailSkeleton() {
     <div className="container py-6 max-w-4xl mx-auto">
       <div className="skeleton h-8 w-32 rounded mb-6" />
       <div className="flex flex-col sm:flex-row gap-8">
-        <div className="skeleton shrink-0 sm:w-48 md:w-56 rounded-lg" style={{ aspectRatio: "5/7" }} />
+        <div className="skeleton shrink-0 sm:w-48 md:w-56 rounded-lg aspect-book" />
         <div className="flex-1 space-y-3">
           <div className="skeleton h-8 w-3/4 rounded" />
           <div className="skeleton h-4 w-1/2 rounded" />

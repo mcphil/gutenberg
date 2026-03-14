@@ -41,8 +41,7 @@ export function AppHeader({
           >
             <BookOpen className="w-5 h-5 text-primary" />
             <span
-              className="font-semibold text-base hidden sm:block"
-              style={{ fontFamily: "Lora, Georgia, serif" }}
+              className="font-semibold text-base hidden sm:block font-lora"
             >
               Gutenberg Navigator
             </span>

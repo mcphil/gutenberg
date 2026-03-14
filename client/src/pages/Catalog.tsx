@@ -171,7 +171,7 @@ function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
       onMouseLeave={() => setHovered(false)}
     >
       {/* Mini cover */}
-      <div className="shrink-0 w-14 rounded overflow-hidden" style={{ aspectRatio: "5/7" }}>
+      <div className="shrink-0 w-14 rounded overflow-hidden aspect-book">
         <figure className="w-full h-full m-0">
           <img
             src={`/api/covers/${book.gutenbergId}`}
@@ -188,8 +188,7 @@ function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
       {/* Info */}
       <div className="flex-1 min-w-0">
         <h3
-          className="font-semibold text-sm leading-tight mb-0.5 line-clamp-2"
-          style={{ fontFamily: "Lora, Georgia, serif" }}
+          className="font-semibold text-sm leading-tight mb-0.5 line-clamp-2 font-lora"
         >
           {book.title}
         </h3>
@@ -217,7 +216,7 @@ function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
 function ListRowSkeleton() {
   return (
     <div className="book-card flex gap-3 p-3">
-      <div className="skeleton shrink-0 w-14 rounded" style={{ aspectRatio: "5/7" }} />
+      <div className="skeleton shrink-0 w-14 rounded aspect-book" />
       <div className="flex-1 space-y-2">
         <div className="skeleton h-4 w-3/4 rounded" />
         <div className="skeleton h-3 w-1/2 rounded" />

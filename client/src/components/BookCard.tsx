@@ -49,7 +49,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
       onMouseLeave={handleMouseLeave}
     >
       {/* Cover */}
-      <div className="relative overflow-hidden" style={{ aspectRatio: "5/7" }}>
+      <div className="relative overflow-hidden aspect-book">
         <div className="absolute inset-0">
           <figure className="absolute inset-0 m-0">
             <img
@@ -66,15 +66,11 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
 
         {/* Hover overlay — summary + tags, anchored to bottom ~2/3 of cover */}
         <div
-          className={`absolute inset-0 transition-opacity duration-200 ${
+          className={`absolute inset-0 transition-opacity duration-200 book-cover-gradient ${
             hovered ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
-          style={{
-            background:
-              "linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.88) 40%, rgba(0,0,0,0.55) 65%, transparent 100%)",
-          }}
         >
-          <div className="absolute bottom-0 left-0 right-0 p-3" style={{ maxHeight: "67%" }}>
+          <div className="absolute bottom-0 left-0 right-0 p-3 max-h-[67%]">
             {isProtected && (
               <div className="flex items-center gap-1 mb-2">
                 <Lock className="w-3 h-3 text-amber-400/80" />
@@ -82,11 +78,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
               </div>
             )}
             {shortSummary ? (
-              <p className="text-white/90 text-xs leading-relaxed overflow-hidden" style={{
-                display: "-webkit-box",
-                WebkitLineClamp: isProtected ? 4 : 6,
-                WebkitBoxOrient: "vertical",
-              }}>
+              <p className={`text-white/90 text-xs leading-relaxed overflow-hidden book-card-summary ${isProtected ? "book-card-summary--protected" : ""}`}>
                 {shortSummary}
               </p>
             ) : (
@@ -112,10 +104,10 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
       {/* Card footer — title, author, year */}
       <div className={compact ? "p-2" : "p-3"}>
         <h3
-          className={`font-semibold text-card-foreground leading-tight mb-0.5 line-clamp-2 ${
+          className={`font-semibold text-card-foreground leading-tight mb-0.5 line-clamp-2 font-lora ${
             compact ? "text-xs" : "text-sm"
           }`}
-          style={{ fontFamily: "Lora, Georgia, serif" }}
+
         >
           {book.title}
         </h3>
@@ -149,7 +141,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
 export function BookCardSkeleton() {
   return (
     <div className="book-card">
-      <div className="skeleton" style={{ aspectRatio: "5/7" }} />
+      <div className="skeleton aspect-book" />
       <div className="p-3 space-y-2">
         <div className="skeleton h-4 w-full rounded" />
         <div className="skeleton h-3 w-2/3 rounded" />

@@ -13,7 +13,7 @@ export default function Impressum() {
           </Link>
         </Button>
 
-        <h1 className="text-3xl font-bold mb-8" style={{ fontFamily: "Lora, Georgia, serif" }}>
+        <h1 className="text-3xl font-bold mb-8 font-lora">
           Impressum
         </h1>
 

@@ -314,6 +314,69 @@
     min-width: 0;
   }
 
+  /* ── Reusable typography utilities ───────────────────────── */
+  .font-lora {
+    font-family: 'Lora', 'Georgia', serif;
+  }
+
+  /* ── Book aspect ratio (5:7 portrait) ────────────────────── */
+  .aspect-book {
+    aspect-ratio: 5/7;
+  }
+
+  /* ── Home page carousel card ─────────────────────────────── */
+  .home-carousel-card {
+    min-width: 220px;
+  }
+
+  /* ── Reader: dynamic theme via CSS custom properties ─────── */
+  .reader-container {
+    background: var(--reader-theme-bg);
+    color: var(--reader-theme-text);
+  }
+  .reader-container.reader-theme-light {
+    --reader-theme-bg: var(--reader-bg-light);
+    --reader-theme-text: var(--reader-text-light);
+    --reader-theme-text-muted: oklch(0.18 0.02 50 / 0.6);
+    --reader-theme-border: oklch(0.88 0.01 85);
+    --reader-theme-toolbar-bg: oklch(1 0 0 / 0.92);
+  }
+  .reader-container.reader-theme-sepia {
+    --reader-theme-bg: var(--reader-bg-sepia);
+    --reader-theme-text: var(--reader-text-sepia);
+    --reader-theme-text-muted: oklch(0.22 0.06 55 / 0.6);
+    --reader-theme-border: oklch(0.80 0.04 75);
+    --reader-theme-toolbar-bg: oklch(0.94 0.04 80 / 0.92);
+  }
+  .reader-container.reader-theme-dark {
+    --reader-theme-bg: var(--reader-bg-dark);
+    --reader-theme-text: var(--reader-text-dark);
+    --reader-theme-text-muted: oklch(0.88 0.01 85 / 0.6);
+    --reader-theme-border: oklch(0.26 0.02 30);
+    --reader-theme-toolbar-bg: oklch(0.17 0.015 30 / 0.95);
+  }
+  .reader-text { color: var(--reader-theme-text); }
+  .reader-text-muted { color: var(--reader-theme-text-muted); }
+  .reader-border { border-color: var(--reader-theme-border); }
+  .reader-toolbar { background: var(--reader-theme-toolbar-bg); }
+  .reader-progress-bar { background: var(--reader-theme-border); }
+  .reader-progress-fill { background: var(--reader-theme-text-muted); }
+
+  /* ── Book card hover summary (line-clamp) ────────────────── */
+  .book-card-summary {
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+  }
+  .book-card-summary--protected {
+    -webkit-line-clamp: 4;
+  }
+
+  /* ── Book cover gradient overlay ────────────────────────── */
+  .book-cover-gradient {
+    background: linear-gradient(to top, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.88) 40%, rgba(0,0,0,0.55) 65%, transparent 100%);
+  }
+
   @media (min-width: 640px) {
     .container {
       padding-left: 1.5rem; /* 24px - tablet padding */
