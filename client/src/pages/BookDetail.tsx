@@ -90,7 +90,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
 
     // Cleanup on unmount
     return () => {
-      document.title = 'Gutenberg Navigator — Deutschsprachige Werke';
+      document.title = 'Gutenberg Navigator — Klassiker kostenlos lesen';
       const ld = document.getElementById('book-jsonld');
       if (ld) ld.remove();
     };

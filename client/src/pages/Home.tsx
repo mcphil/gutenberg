@@ -17,7 +17,7 @@ export default function Home() {
   const { getAllProgress, removeProgress } = useReadingProgress();
   const { data: countData } = trpc.books.count.useQuery();
   const bookCount = countData ?? 2420;
-  // Sync dark mode to <html>>
+  // Sync dark mode to <html>
   useEffect(() => {
     if (appPrefs.darkMode) {
       document.documentElement.classList.add("dark");
@@ -25,6 +25,18 @@ export default function Home() {
       document.documentElement.classList.remove("dark");
     }
   }, [appPrefs.darkMode]);
+
+  // Set homepage title and keywords for SEO
+  useEffect(() => {
+    document.title = "Gutenberg Navigator — Klassiker kostenlos lesen";
+    let metaKw = document.querySelector<HTMLMetaElement>('meta[name="keywords"]');
+    if (!metaKw) {
+      metaKw = document.createElement('meta');
+      metaKw.name = 'keywords';
+      document.head.appendChild(metaKw);
+    }
+    metaKw.content = "Gutenberg, deutschsprachige Klassiker, kostenlos lesen, EPUB, Literatur, Goethe, Schiller, Kafka, gemeinfreie Bücher";
+  }, []);
 
   const handleViewChange = (v: "grid" | "list" | "browse") => {
     setView(v);
@@ -142,6 +154,17 @@ export default function Home() {
           </div>
         )}
 
+        {/* SEO: H2 heading for the catalog section — visible but styled subtly */}
+        {!searchQuery && (
+          <h2 className="sr-only">
+            Deutschsprachige Klassiker — über 2.400 gemeinfreie Werke kostenlos lesen
+          </h2>
+        )}
+        {searchQuery && (
+          <h2 className="sr-only">
+            Suchergebnisse für „{searchQuery}“
+          </h2>
+        )}
         <Catalog view={view as "grid" | "list"} searchQuery={searchQuery} />
       </main>
     </div>

@@ -96,3 +96,6 @@
 - [x] Server-seitige Meta-Tag-Injektion für /book/:id (title, description, OG, Twitter Card, JSON-LD)
 - [x] JSON-LD schema.org/Book Strukturdaten in BookDetail.tsx (client-seitig via useEffect)
 - [x] Dynamischer <title> und <meta description> für Autorenseiten (/author/:name) via server-seitige Injektion
+- [x] SEO Startseite: Titel auf 30-60 Zeichen erweitern (49 Zeichen: "Gutenberg Navigator — Klassiker kostenlos lesen")
+- [x] SEO Startseite: Keywords-Meta-Tag hinzufügen (index.html + useEffect in Home.tsx)
+- [x] SEO Startseite: H2-Überschrift hinzufügen (sr-only für Katalog und Suchergebnisse)
