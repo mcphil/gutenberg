@@ -56,6 +56,33 @@ export default function BookDetail({ bookId }: BookDetailProps) {
     }
     metaDesc.content = desc.length > 160 ? desc.slice(0, 159) + '…' : desc;
 
+    // Open Graph + Twitter Card meta tags for social sharing
+    const coverUrl = `${window.location.origin}/api/covers/${book.gutenbergId}`;
+    const bookUrl = `${window.location.origin}/book/${book.gutenbergId}`;
+    const ogDesc = desc.length > 200 ? desc.slice(0, 199) + '…' : desc;
+    const setMeta = (property: string, content: string, attr = 'property') => {
+      let el = document.querySelector<HTMLMetaElement>(`meta[${attr}="${property}"]`);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attr, property);
+        document.head.appendChild(el);
+      }
+      el.content = content;
+    };
+    setMeta('og:type', 'book');
+    setMeta('og:title', `${book.title} — ${authorDisplay}`);
+    setMeta('og:description', ogDesc);
+    setMeta('og:url', bookUrl);
+    setMeta('og:image', coverUrl);
+    setMeta('og:image:width', '400');
+    setMeta('og:image:height', '560');
+    setMeta('og:image:type', 'image/webp');
+    setMeta('og:site_name', 'Gutenberg Navigator');
+    setMeta('twitter:card', 'summary_large_image', 'name');
+    setMeta('twitter:title', `${book.title} — ${authorDisplay}`, 'name');
+    setMeta('twitter:description', ogDesc, 'name');
+    setMeta('twitter:image', coverUrl, 'name');
+
     // JSON-LD structured data
     const existingLd = document.getElementById('book-jsonld');
     if (existingLd) existingLd.remove();

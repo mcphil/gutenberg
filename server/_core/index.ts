@@ -8,7 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { getCoverPath } from "../covers";
-import { generateFallbackCoverSvg } from "../fallbackCover";
+import { getGenCoverPath } from "../generativeCoverCache";
 import { getEpubPath } from "../epubs";
 import { serveSitemapIndex, serveStaticSitemap, serveBooksSitemap, serveAuthorsSitemap } from "../sitemap";
 
@@ -40,9 +40,10 @@ async function startServer() {
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
-  // Cover image proxy — downloads on first request, serves from local disk thereafter.
-  // Falls back to a generated typographic SVG cover if no image is available.
-  // Query params: ?title=...&author=... (used only for SVG fallback generation)
+  // Cover image endpoint — serves pre-rendered covers.
+  // Priority: (1) downloaded JPEG from Gutenberg, (2) generative WebP (rendered on first request, cached forever).
+  // The generative cover is deterministic: same book always gets the same design.
+  // Stable URL: /api/covers/:id — suitable for og:image and social sharing.
   app.get("/api/covers/:id", async (req, res) => {
     const id = parseInt(req.params.id ?? "", 10);
     if (isNaN(id) || id <= 0) {
@@ -50,24 +51,26 @@ async function startServer() {
       return;
     }
     try {
-      const filePath = await getCoverPath(id);
-      if (filePath) {
-        // Serve the cached JPEG
+      // 1. Try downloaded JPEG from Gutenberg (preferred: real cover art)
+      const jpegPath = await getCoverPath(id);
+      if (jpegPath) {
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
         res.setHeader("Content-Type", "image/jpeg");
-        res.sendFile(filePath);
+        res.sendFile(jpegPath);
         return;
       }
 
-      // No image found — generate a typographic SVG fallback
-      const title = String(req.query.title ?? `Buch ${id}`);
-      const author = String(req.query.author ?? "Unbekannter Autor");
-      const svg = generateFallbackCoverSvg(title, author);
+      // 2. Render generative WebP cover (cached to disk on first render)
+      const webpPath = await getGenCoverPath(id);
+      if (webpPath) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("Content-Type", "image/webp");
+        res.sendFile(webpPath);
+        return;
+      }
 
-      // SVG fallbacks are deterministic, so we can cache them aggressively too
-      res.setHeader("Cache-Control", "public, max-age=86400"); // 1 day (shorter: title could be updated)
-      res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
-      res.send(svg);
+      // 3. Book not found
+      res.status(404).json({ error: "Cover not available" });
     } catch (err) {
       console.error(`[covers] Error serving cover for ${id}:`, err);
       res.status(500).json({ error: "Internal server error" });

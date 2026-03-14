@@ -22,6 +22,9 @@ import { bookSummaries } from "../drizzle/schema";
 // In production this path persists on the server's filesystem.
 const COVERS_DIR = path.resolve(process.cwd(), "data", "covers");
 
+/** In-memory set of IDs known to have no cover (avoids repeated DB lookups and timeouts) */
+const knownNoCover = new Set<number>();
+
 // Ensure the directory exists at startup
 if (!fs.existsSync(COVERS_DIR)) {
   fs.mkdirSync(COVERS_DIR, { recursive: true });
@@ -125,10 +128,37 @@ export async function downloadCover(
 /**
  * Get the local file path for a cover, downloading it first if needed.
  * Returns null if no cover could be obtained.
+ *
+ * Skips the download attempt if the DB already records coverCached=false
+ * (meaning we already tried and failed), to avoid repeated 10-second timeouts.
  */
 export async function getCoverPath(gutenbergId: number): Promise<string | null> {
+  // Fast path: file already on disk
   if (coverExists(gutenbergId)) return coverFilePath(gutenbergId);
+
+  // Skip if we already know there's no cover (in-memory cache)
+  if (knownNoCover.has(gutenbergId)) return null;
+
+  // Skip if DB says coverCached=false (we already tried and failed)
+  try {
+    const db = await getDb();
+    if (db) {
+      const [row] = await db
+        .select({ coverCached: bookSummaries.coverCached })
+        .from(bookSummaries)
+        .where(eq(bookSummaries.gutenbergId, gutenbergId))
+        .limit(1);
+      if (row && row.coverCached === false) {
+        knownNoCover.add(gutenbergId);
+        return null;
+      }
+    }
+  } catch {
+    // Non-fatal — fall through to attempt download
+  }
+
   const ok = await downloadCover(gutenbergId);
+  if (!ok) knownNoCover.add(gutenbergId);
   return ok ? coverFilePath(gutenbergId) : null;
 }
 
