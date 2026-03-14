@@ -50,7 +50,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
     >
       {/* Cover */}
       <div className="relative overflow-hidden" style={{ aspectRatio: "5/7" }}>
-        <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-105">
+        <div className="absolute inset-0">
           <figure className="absolute inset-0 m-0">
             <img
               src={`/api/covers/${book.gutenbergId}`}
