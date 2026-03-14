@@ -113,3 +113,6 @@
 
 ## Cover-Seitenverhältnis
 - [x] Alle Cover-Container auf 2:3 aspect-ratio und object-contain korrigieren (kein Anschneiden)
+
+## SEO
+- [x] Cover-URLs als image:image-Einträge in XML-Sitemap integrieren

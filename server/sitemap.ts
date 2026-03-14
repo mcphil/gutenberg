@@ -39,6 +39,30 @@ function urlEntry(loc: string, priority: string, changefreq: string, lastmod?: s
   return `  <url>\n    <loc>${escapeXml(loc)}</loc>${lastmodTag}\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>\n`;
 }
 
+function urlEntryWithImage(
+  loc: string,
+  priority: string,
+  changefreq: string,
+  imageUrl: string,
+  imageTitle: string,
+  imageCaption: string,
+  lastmod?: string
+): string {
+  const lastmodTag = lastmod ? `\n    <lastmod>${lastmod}</lastmod>` : "";
+  return (
+    `  <url>\n` +
+    `    <loc>${escapeXml(loc)}</loc>${lastmodTag}\n` +
+    `    <changefreq>${changefreq}</changefreq>\n` +
+    `    <priority>${priority}</priority>\n` +
+    `    <image:image>\n` +
+    `      <image:loc>${escapeXml(imageUrl)}</image:loc>\n` +
+    `      <image:title>${escapeXml(imageTitle)}</image:title>\n` +
+    `      <image:caption>${escapeXml(imageCaption)}</image:caption>\n` +
+    `    </image:image>\n` +
+    `  </url>\n`
+  );
+}
+
 function today(): string {
   return new Date().toISOString().split("T")[0];
 }
@@ -94,22 +118,45 @@ export async function serveBooksSitemap(_req: Request, res: Response): Promise<v
       return;
     }
 
-    // Fetch all book IDs and their importedAt date for lastmod
+    // Fetch all book IDs, titles, authors and importedAt date for lastmod
     const rows = await db.execute(
-      sql`SELECT gutenbergId, importedAt FROM books WHERE type = 'Text' ORDER BY gutenbergId ASC`
+      sql`SELECT gutenbergId, title, authors, importedAt FROM books WHERE type = 'Text' ORDER BY gutenbergId ASC`
     );
-    const bookRows = rows[0] as unknown as { gutenbergId: number; importedAt: Date | null }[];
+    const bookRows = rows[0] as unknown as {
+      gutenbergId: number;
+      title: string;
+      authors: string | null;
+      importedAt: Date | null;
+    }[];
 
     const entries = bookRows.map(b => {
       const lastmod = b.importedAt
         ? new Date(b.importedAt).toISOString().split("T")[0]
         : today();
-      return urlEntry(`${DOMAIN}/book/${b.gutenbergId}`, "0.7", "monthly", lastmod);
+      const imageUrl = `${DOMAIN}/api/covers/${b.gutenbergId}`;
+      const imageTitle = b.title ?? `Buch ${b.gutenbergId}`;
+      // Build a short caption: "Titel — Autor (Gutenberg-Navigator.de)"
+      const authorPart = b.authors
+        ? b.authors.split(";")[0].replace(/,\s*\d{3,4}.*$/, "").replace(/\[.*?\]/g, "").trim()
+        : "";
+      const imageCaption = authorPart
+        ? `${imageTitle} — ${authorPart} (gutenberg-navigator.de)`
+        : `${imageTitle} (gutenberg-navigator.de)`;
+      return urlEntryWithImage(
+        `${DOMAIN}/book/${b.gutenbergId}`,
+        "0.7",
+        "monthly",
+        imageUrl,
+        imageTitle,
+        imageCaption,
+        lastmod
+      );
     });
 
     const xml = [
       xmlHeader(),
-      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n',
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n' +
+      '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n',
       ...entries,
       "</urlset>",
     ].join("");
