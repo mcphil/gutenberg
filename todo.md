@@ -142,3 +142,6 @@
 ## Deployment-Verifikation
 - [x] X-App-Version Header in Express-Antworten eingebaut (verifizierbar mit curl -I | grep x-app-version)
 - [x] OG-Injection-Marker <!-- ssr-meta-injected --> in HTML eingebaut (verifizierbar mit curl | grep ssr-meta-injected)
+
+## Sprachkonsistenz
+- [x] Englische Subjects/Tags/Kategorien in der UI auf Deutsch übersetzt: BOOKSHELF_TRANSLATIONS (126 Einträge) + SUBJECT_TRANSLATIONS (Regex+Exact, inkl. Catholic Church, Category:*) in shared/gutenberg.ts. parseSubjects/parseBookshelves wenden Übersetzung automatisch an.

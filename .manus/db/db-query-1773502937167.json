@@ -1,0 +1,16 @@
+{
+  "query": "SELECT gutenbergId, title, subjects, bookshelves FROM books WHERE title LIKE '%Pfaffenspiegel%' LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute SELECT gutenbergId, title, subjects, bookshelves FROM books WHERE title LIKE '%Pfaffenspiegel%' LIMIT 3;",
+  "rows": [
+    {
+      "gutenbergId": "34581",
+      "title": "Der Pfaffenspiegel Historische Denkmale des Fanatismus in der römisch-katholischen Kirche",
+      "subjects": "Catholic Church -- Controversial literature",
+      "bookshelves": "DE Sachbuch; Category: History - Religious; Category: Philosophy & Ethics"
+    }
+  ],
+  "messages": [],
+  "stdout": "gutenbergId\ttitle\tsubjects\tbookshelves\n34581\tDer Pfaffenspiegel Historische Denkmale des Fanatismus in der römisch-katholischen Kirche\tCatholic Church -- Controversial literature\tDE Sachbuch; Category: History - Religious; Category: Philosophy & Ethics\n",
+  "stderr": "",
+  "execution_time_ms": 370
+}

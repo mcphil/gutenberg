@@ -130,16 +130,226 @@ export function getAuthorYears(author: ParsedAuthor): string {
   return "";
 }
 
+// ─── Subject & Bookshelf translations (EN → DE) ─────────────────────────────
+//
+// Gutenberg.org stores all metadata in English. We translate on the fly in the
+// UI layer so the raw DB values remain unchanged (easier to re-import).
+
+/** Exact-match translations for bookshelves (most are "Category: *" prefixed). */
+const BOOKSHELF_TRANSLATIONS: Record<string, string> = {
+  // Category: prefixed
+  "Category: German Literature": "Deutsche Literatur",
+  "Category: Novels": "Romane",
+  "Category: History - European": "Geschichte – Europa",
+  "Category: Plays/Films/Dramas": "Drama & Theater",
+  "Category: Philosophy & Ethics": "Philosophie & Ethik",
+  "Category: Short Stories": "Kurzgeschichten",
+  "Category: Biographies": "Biografien",
+  "Category: Poetry": "Lyrik",
+  "Category: Historical Novels": "Historische Romane",
+  "Category: History - Modern (1750+)": "Geschichte – Neuzeit (1750+)",
+  "Category: Travel Writing": "Reisebeschreibungen",
+  "Category: Mythology, Legends & Folklore": "Mythologie, Sagen & Folklore",
+  "Category: Humour": "Humor & Satire",
+  "Category: Adventure": "Abenteuer",
+  "Category: Essays, Letters & Speeches": "Essays, Briefe & Reden",
+  "Category: Archaeology & Anthropology": "Archäologie & Anthropologie",
+  "Category: Children & Young Adult Reading": "Kinder- & Jugendliteratur",
+  "Category: Art": "Kunst",
+  "Category: History - Other": "Geschichte – Sonstiges",
+  "Category: Classics of Literature": "Literarische Klassiker",
+  "Category: Science - Biology": "Naturwissenschaft – Biologie",
+  "Category: Russian Literature": "Russische Literatur",
+  "Category: Religion/Spirituality": "Religion & Spiritualität",
+  "Category: Science-Fiction & Fantasy": "Science-Fiction & Fantasy",
+  "Category: History - Warfare": "Geschichte – Kriegsgeschichte",
+  "Category: Romance": "Liebesromane",
+  "Category: Nature/Gardening/Animals": "Natur, Garten & Tiere",
+  "Category: Psychiatry/Psychology": "Psychiatrie & Psychologie",
+  "Category: History - Early Modern (c. 1450-1750)": "Geschichte – Frühe Neuzeit (1450–1750)",
+  "Category: Language & Communication": "Sprache & Kommunikation",
+  "Category: How To ...": "Ratgeber",
+  "Category: Health & Medicine": "Gesundheit & Medizin",
+  "Category: History - Ancient": "Geschichte – Antike",
+  "Category: Encyclopedias/Dictionaries/Reference": "Lexika & Nachschlagewerke",
+  "Category: Teaching & Education": "Pädagogik & Bildung",
+  "Category: British Literature": "Britische Literatur",
+  "Category: Science - Earth/Agricultural/Farming": "Naturwissenschaft – Erd- & Agrarwissenschaften",
+  "Category: French Literature": "Französische Literatur",
+  "Category: Engineering & Technology": "Ingenieurwesen & Technik",
+  "Category: Science - Physics": "Naturwissenschaft – Physik",
+  "Category: Environmental Issues": "Umwelt & Ökologie",
+  "Category: Sociology": "Soziologie",
+  "Category: History - Religious": "Geschichte – Religionsgeschichte",
+  "Category: History - Medieval/Middle Ages": "Geschichte – Mittelalter",
+  "Category: American Literature": "Amerikanische Literatur",
+  "Category: History - British": "Geschichte – Britische Geschichte",
+  "Category: Architecture": "Architektur",
+  "Category: Science - Chemistry/Biochemistry": "Naturwissenschaft – Chemie & Biochemie",
+  "Category: Music": "Musik",
+  "Category: Economics": "Wirtschaft",
+  "Category: Gender & Sexuality Studies": "Gender & Sexualität",
+  "Category: Mathematics": "Mathematik",
+  "Category: Law & Criminology": "Recht & Kriminologie",
+  "Category: Business/Management": "Wirtschaft & Management",
+  "Category: Politics": "Politik",
+  "Category: Crime, Thrillers and Mystery": "Krimi & Thriller",
+  "Category: History - Royalty": "Geschichte – Adel & Monarchie",
+  "Category: Sexuality & Erotica": "Erotik",
+  "Category: History - American": "Geschichte – Amerikanische Geschichte",
+  "Category: Drugs/Alcohol/Pharmacology": "Pharmakologie & Sucht",
+  "Category: Parenthood & Family Relations": "Familie & Erziehung",
+  "Category: Journals": "Zeitschriften & Journale",
+  "Category: Cooking & Drinking": "Kochen & Trinken",
+  "Category: Reports & Conference Proceedings": "Berichte & Konferenzen",
+  "Category: Literature - Other": "Literatur – Sonstiges",
+  "Category: History - Schools & Universities": "Geschichte – Bildungsgeschichte",
+  "Category: Journalism/Media/Writing": "Journalismus & Medien",
+  "Category: Fashion": "Mode",
+  "Category: Sports/Hobbies": "Sport & Hobbys",
+  "Category: Nutrition": "Ernährung",
+  "Category: Research Methods/Statistics/Information Sys": "Forschungsmethoden & Statistik",
+  // Non-prefixed
+  "Nobel Prizes in Literature": "Nobelpreisträger Literatur",
+  "German Language Books": "Deutschsprachige Bücher",
+  "Harvard Classics": "Harvard Classics",
+  "Children's Literature": "Kinderliteratur",
+  "Best Books Ever Listings": "Beste Bücher aller Zeiten",
+  "Banned Books from Anne Haight's list": "Verbotene Bücher",
+  "Philosophy": "Philosophie",
+  "Mathematics": "Mathematik",
+  "Opera": "Oper",
+  "Physics": "Physik",
+  "Anthropology": "Anthropologie",
+  "Art": "Kunst",
+  "Judaism": "Judentum",
+  "Music": "Musik",
+  "World War I": "Erster Weltkrieg",
+  "Language Education": "Sprachbildung",
+  "Erotic Fiction": "Erotische Literatur",
+  "One Act Plays": "Einakter",
+  "Children's Picture Books": "Bilderbücher",
+  "Folklore": "Folklore",
+  "Microbiology": "Mikrobiologie",
+  "Botany": "Botanik",
+  "Sociology": "Soziologie",
+  "Women in Science, Technology, Engineering, and Mathematics": "Frauen in MINT",
+  "Christianity": "Christentum",
+  "Atheism": "Atheismus",
+  "Christmas": "Weihnachten",
+  "United Kingdom": "Vereinigtes Königreich",
+  "Italy": "Italien",
+  "United States": "Vereinigte Staaten",
+  "South Africa": "Südafrika",
+  "Historical Fiction": "Historische Romane",
+  "Geology": "Geologie",
+  "Classical Antiquity": "Klassische Antike",
+  "Crime Fiction": "Kriminalliteratur",
+  "Biology": "Biologie",
+  "Zoology": "Zoologie",
+  "Psychology": "Psychologie",
+  "Children's Myths, Fairy Tales, etc.": "Märchen & Sagen",
+  "Horticulture": "Gartenbau",
+  "Greece": "Griechenland",
+  "Physiology": "Physiologie",
+  "Argentina": "Argentinien",
+  "Cookbooks and Cooking": "Kochbücher",
+  "Mycology": "Mykologie",
+  "Precursors of Science Fiction": "Vorläufer der Science-Fiction",
+  "Esperanto": "Esperanto",
+  "Humor": "Humor",
+  "Africa": "Afrika",
+  "Germany": "Deutschland",
+};
+
+/** Prefix/pattern translations for subjects (applied in order). */
+const SUBJECT_TRANSLATIONS: Array<[RegExp | string, string]> = [
+  // Exact matches first
+  ["Fiction", "Belletristik"],
+  ["Poetry", "Lyrik"],
+  ["Drama", "Drama"],
+  ["Autobiographies", "Autobiografien"],
+  ["Psychoanalysis", "Psychoanalyse"],
+  ["Philosophy", "Philosophie"],
+  ["Satire", "Satire"],
+  ["Aesthetics", "Ästhetik"],
+  ["Ethnology", "Ethnologie"],
+  ["Mathematics", "Mathematik"],
+  ["Science fiction", "Science-Fiction"],
+  ["Comedy plays", "Komödien"],
+  ["Historical fiction", "Historische Romane"],
+  ["Love stories", "Liebesgeschichten"],
+  ["Adventure stories", "Abenteuergeschichten"],
+  ["Fairy tales", "Märchen"],
+  ["Didactic fiction", "Lehrhafte Literatur"],
+  ["Psychological fiction", "Psychologische Romane"],
+  ["Bildungsromans", "Bildungsromane"],
+  ["Tragedies (Drama)", "Tragödien"],
+  // Regex patterns for compound subjects
+  [/^German fiction/, "Deutsche Prosa"],
+  [/^Short stories, German/, "Deutsche Kurzgeschichten"],
+  [/^Short stories, Austrian/, "Österreichische Kurzgeschichten"],
+  [/^Short stories/, "Kurzgeschichten"],
+  [/^German poetry/, "Deutsche Lyrik"],
+  [/^German drama/, "Deutsches Drama"],
+  [/^German literature/, "Deutsche Literatur"],
+  [/^German wit and humor/, "Deutscher Humor"],
+  [/^Austrian fiction/, "Österreichische Prosa"],
+  [/^Children's stories, German/, "Deutsche Kindergeschichten"],
+  [/^Children's poetry, German/, "Deutsche Kinderlyrik"],
+  [/^Russian fiction.*Translations into German/, "Russische Prosa (Übersetzung)"],
+  [/^Russian fiction/, "Russische Prosa"],
+  [/^Philosophy, German/, "Deutsche Philosophie"],
+  [/^Fairy tales.*Germany/, "Deutsche Märchen"],
+  [/^Nature conservation.*Germany/, "Naturschutz in Deutschland"],
+  [/^Saxony.*Periodicals/, "Sachsen – Periodika"],
+  [/^Germany.*Fiction/, "Deutschland – Belletristik"],
+  [/^Germany, Northern.*Fiction/, "Norddeutschland – Belletristik"],
+  [/^Italy.*Fiction/, "Italien – Belletristik"],
+  [/^Switzerland.*Fiction/, "Schweiz – Belletristik"],
+  [/^Norway.*Fiction/, "Norwegen – Belletristik"],
+  [/^Russia.*Fiction/, "Russland – Belletristik"],
+  [/^South America.*Description and travel/, "Südamerika – Reisebeschreibungen"],
+  [/^United States.*Description and travel/, "USA – Reisebeschreibungen"],
+  [/^Voyages around the world/, "Weltreisen"],
+  [/^Man-woman relationships.*Fiction/, "Liebesbeziehungen – Belletristik"],
+  [/^Speeches, addresses/, "Reden & Ansprachen"],
+  [/^World War, 1914-1918.*Fiction/, "Erster Weltkrieg – Belletristik"],
+  [/^Great Britain.*History.*James II/, "Großbritannien – Geschichte (Jakob II.)"],
+  [/^Great Britain.*History.*William and Mary/, "Großbritannien – Geschichte (Wilhelm & Maria)"],
+  [/^English language.*Dictionaries.*German/, "Englisch-Deutsch Wörterbuch"],
+  [/^German language.*Dictionaries.*English/, "Deutsch-Englisch Wörterbuch"],
+  // Catholic Church subject
+  [/^Catholic Church/, "Katholische Kirche"],
+];
+
+/** Translate a single subject or bookshelf string to German. */
+function translateTag(raw: string): string {
+  // 1. Check exact bookshelf match
+  if (BOOKSHELF_TRANSLATIONS[raw]) return BOOKSHELF_TRANSLATIONS[raw];
+  // 2. Check subject translations (exact string or regex)
+  for (const [pattern, translation] of SUBJECT_TRANSLATIONS) {
+    if (typeof pattern === "string" ? raw === pattern : pattern.test(raw)) {
+      return translation;
+    }
+  }
+  // 3. Return original if no translation found
+  return raw;
+}
+
+/** @deprecated Use translateTag via parseSubjects/parseBookshelves instead */
+export const translateSubject = translateTag;
+
 // ─── Subject parsing ──────────────────────────────────────────────────────────
 
 export function parseSubjects(subjectsStr: string | null): string[] {
   if (!subjectsStr) return [];
-  return subjectsStr.split(";").map((s) => s.trim()).filter(Boolean);
+  return subjectsStr.split(";").map((s) => translateTag(s.trim())).filter(Boolean);
 }
 
 export function parseBookshelves(bookshelvesStr: string | null): string[] {
   if (!bookshelvesStr) return [];
-  return bookshelvesStr.split(";").map((s) => s.trim()).filter(Boolean);
+  return bookshelvesStr.split(";").map((s) => translateTag(s.trim())).filter(Boolean);
 }
 
 // ─── URL helpers ──────────────────────────────────────────────────────────────
@@ -255,109 +465,6 @@ export function isCopyrightProtectedDE(
   }
 
   return false; // all primary authors determined to be public domain
-}
-
-// ─── Subject translation map (English → German) ──────────────────────────────
-// Gutenberg subjects from pg_catalog.csv are in English; we translate for display.
-
-const SUBJECT_TRANSLATIONS: Record<string, string> = {
-  // Genres & forms
-  "Fiction": "Belletristik",
-  "Drama": "Drama",
-  "Poetry": "Lyrik",
-  "Poems": "Gedichte",
-  "Novel": "Roman",
-  "Novels": "Romane",
-  "Short stories": "Kurzgeschichten",
-  "Short story": "Kurzgeschichte",
-  "Essays": "Essays",
-  "Satire": "Satire",
-  "Fairy tales": "Märchen",
-  "Fables": "Fabeln",
-  "Legends": "Sagen",
-  "Mythology": "Mythologie",
-  "Adventure stories": "Abenteuergeschichten",
-  "Adventure": "Abenteuer",
-  "Romance": "Liebesroman",
-  "Love stories": "Liebesgeschichten",
-  "Detective fiction": "Kriminalroman",
-  "Mystery fiction": "Kriminalroman",
-  "Horror tales": "Horrorgeschichten",
-  "Science fiction": "Science-Fiction",
-  "Fantasy fiction": "Fantasy",
-  "Historical fiction": "Historischer Roman",
-  "Epistolary fiction": "Briefroman",
-  "Humorous stories": "Humoristische Geschichten",
-  "War stories": "Kriegsgeschichten",
-  "Autobiographical fiction": "Autobiografischer Roman",
-  "Bildungsromans": "Bildungsroman",
-  // Subjects & themes
-  "History": "Geschichte",
-  "Philosophy": "Philosophie",
-  "Science": "Wissenschaft",
-  "Biography": "Biografie",
-  "Autobiography": "Autobiografie",
-  "Memoirs": "Memoiren",
-  "Travel": "Reise",
-  "Religion": "Religion",
-  "Theology": "Theologie",
-  "Ethics": "Ethik",
-  "Logic": "Logik",
-  "Psychology": "Psychologie",
-  "Sociology": "Soziologie",
-  "Politics": "Politik",
-  "Economics": "Wirtschaft",
-  "Law": "Recht",
-  "Education": "Bildung",
-  "Music": "Musik",
-  "Art": "Kunst",
-  "Architecture": "Architektur",
-  "Nature": "Natur",
-  "Animals": "Tiere",
-  "Children's literature": "Kinderliteratur",
-  "Children": "Kinder",
-  "War": "Krieg",
-  "Death": "Tod",
-  "Love": "Liebe",
-  "Family": "Familie",
-  "Society": "Gesellschaft",
-  "Identity": "Identität",
-  "Morality": "Moral",
-  "Classicism": "Klassizismus",
-  "Romanticism": "Romantik",
-  "Realism": "Realismus",
-  "Expressionism": "Expressionismus",
-  "Naturalism": "Naturalismus",
-  "Modernism": "Moderne",
-  "Enlightenment": "Aufklärung",
-  "Baroque": "Barock",
-  "Medieval": "Mittelalter",
-  "Classical literature": "Klassische Literatur",
-  "German literature": "Deutsche Literatur",
-  "Austrian literature": "Österreichische Literatur",
-  "Swiss literature": "Schweizer Literatur",
-  "Correspondence": "Briefwechsel",
-  "Letters": "Briefe",
-  "Diaries": "Tagebücher",
-  "Speeches": "Reden",
-  "Translations": "Übersetzungen",
-};
-
-/**
- * Translate a Gutenberg subject string to German.
- * Handles compound subjects like "Germans -- Fiction" by translating each part.
- * Falls back to the original string if no translation is found.
- */
-export function translateSubject(subject: string): string {
-  const mainPart = subject.replace(/ -- .+$/, "").trim();
-  if (SUBJECT_TRANSLATIONS[mainPart]) return SUBJECT_TRANSLATIONS[mainPart];
-  const lower = mainPart.toLowerCase();
-  const key = Object.keys(SUBJECT_TRANSLATIONS).find((k) => k.toLowerCase() === lower);
-  if (key) return SUBJECT_TRANSLATIONS[key];
-  for (const [en, de] of Object.entries(SUBJECT_TRANSLATIONS)) {
-    if (mainPart.includes(en)) return de;
-  }
-  return mainPart;
 }
 
 // ─── Curated German filter topics ────────────────────────────────────────────

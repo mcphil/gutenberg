@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, title, subjects, bookshelves FROM books WHERE title LIKE '%Pfaffenspiegel%' LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute SELECT id, title, subjects, bookshelves FROM books WHERE title LIKE '%Pfaffenspiegel%' LIMIT 3;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'id' in 'field list'"
+  ]
+}
