@@ -11,7 +11,6 @@ import {
   getAuthorDisplay, parseSubjects, translateSubject,
   type LocalBook, isCopyrightProtectedDE
 } from "../../../shared/gutenberg";
-import { GenerativeCover } from "@/components/GenerativeCover";
 
 interface BrowseModeProps {
   onClose: () => void;
@@ -224,7 +223,17 @@ function BrowseSlide({ book, onRead, onDetail, isVisible }: BrowseSlideProps) {
         {/* Cover */}
         <div className="browse-cover">
           <div className="w-full h-full drop-shadow-xl rounded overflow-hidden">
-            <GenerativeCover title={book.title} author={author} previewText={shortSummary ?? book.subjects ?? ""} size="lg" className="w-full h-full" />
+            <figure className="w-full h-full m-0">
+              <img
+                src={`/api/covers/${book.gutenbergId}`}
+                alt={`Cover von ${book.title}`}
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
+                width={400}
+                height={560}
+              />
+            </figure>
           </div>
         </div>
 

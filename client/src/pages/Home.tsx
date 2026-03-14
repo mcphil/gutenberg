@@ -3,7 +3,6 @@ import { AppHeader } from "@/components/AppHeader";
 import Catalog from "./Catalog";
 import BrowseMode from "./BrowseMode";
 import { useAppPreferences } from "@/hooks/useLocalStorage";
-import { GenerativeCover } from "@/components/GenerativeCover";
 import { BookOpen, Clock, Shuffle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
@@ -123,7 +122,15 @@ export default function Home() {
                     className="w-full flex items-center gap-3 bg-card border border-border rounded-lg p-3 hover:border-primary/50 transition-colors text-left"
                   >
                     <div className="w-10 shrink-0 rounded overflow-hidden" style={{ aspectRatio: "2/3" }}>
-                      <GenerativeCover title={p.title} size="sm" className="w-full h-full" />
+                      <img
+                        src={`/api/covers/${p.gutenbergId}`}
+                        alt={`Cover von ${p.title}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                        width={80}
+                        height={120}
+                      />
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-medium line-clamp-2 text-foreground"

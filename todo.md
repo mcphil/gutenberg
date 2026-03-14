@@ -104,3 +104,8 @@
 ## Cover-Vereinheitlichung
 - [x] GenerativeCover-Komponente: deterministisches Cover-Design basierend auf Buchtitel, Autor, Genre (12 Paletten, 8 Muster, 4 Ornamente)
 - [x] Alle Gutenberg-Cover-Bilder ersetzen: BookCard, BrowseMode, BookDetail, Home (Weiterlesen)
+
+## Statische Cover-Auslieferung
+- [x] Batch-render alle fehlenden WebP-Cover via server-seitigem Script
+- [x] GenerativeCover Canvas durch semantisches figure/img-Tag ersetzen (BookCard, BrowseMode, BookDetail, Home)
+- [ ] GenerativeCover Canvas-Komponente entfernen (nicht mehr benötigt)

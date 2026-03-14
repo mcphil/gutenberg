@@ -4,7 +4,6 @@ import { User, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { LocalBook } from "../../../shared/gutenberg";
 import { getAuthorDisplay, parseSubjects, translateSubject, parseAuthors, isCopyrightProtectedDE } from "../../../shared/gutenberg";
-import { GenerativeCover } from "@/components/GenerativeCover";
 
 interface BookCardProps {
   book: LocalBook;
@@ -52,7 +51,17 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
       {/* Cover */}
       <div className="relative overflow-hidden" style={{ aspectRatio: "2/3" }}>
         <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-105">
-          <GenerativeCover title={book.title} author={author} previewText={shortSummary ?? book.subjects ?? ""} size={compact ? "sm" : "md"} className="absolute inset-0" />
+          <figure className="absolute inset-0 m-0">
+            <img
+              src={`/api/covers/${book.gutenbergId}`}
+              alt={`Cover von ${book.title}`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+              width={200}
+              height={300}
+            />
+          </figure>
         </div>
 
         {/* Hover overlay — summary + tags, anchored to bottom ~2/3 of cover */}

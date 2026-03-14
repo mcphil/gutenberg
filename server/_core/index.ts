@@ -7,7 +7,6 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
-import { getCoverPath } from "../covers";
 import { getGenCoverPath } from "../generativeCoverCache";
 import { getEpubPath } from "../epubs";
 import { serveSitemapIndex, serveStaticSitemap, serveBooksSitemap, serveAuthorsSitemap } from "../sitemap";
@@ -40,10 +39,10 @@ async function startServer() {
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
-  // Cover image endpoint — serves pre-rendered covers.
-  // Priority: (1) downloaded JPEG from Gutenberg, (2) generative WebP (rendered on first request, cached forever).
-  // The generative cover is deterministic: same book always gets the same design.
-  // Stable URL: /api/covers/:id — suitable for og:image and social sharing.
+  // Cover image endpoint — serves pre-rendered generative WebP covers.
+  // All 2,395 covers are pre-rendered to data/gen-covers/{id}.webp via render-covers.ts.
+  // For new books, the cover is rendered on first request and cached forever.
+  // Stable URL: /api/covers/:id — suitable for og:image, social sharing, and image search.
   app.get("/api/covers/:id", async (req, res) => {
     const id = parseInt(req.params.id ?? "", 10);
     if (isNaN(id) || id <= 0) {
@@ -51,16 +50,6 @@ async function startServer() {
       return;
     }
     try {
-      // 1. Try downloaded JPEG from Gutenberg (preferred: real cover art)
-      const jpegPath = await getCoverPath(id);
-      if (jpegPath) {
-        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        res.setHeader("Content-Type", "image/jpeg");
-        res.sendFile(jpegPath);
-        return;
-      }
-
-      // 2. Render generative WebP cover (cached to disk on first render)
       const webpPath = await getGenCoverPath(id);
       if (webpPath) {
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
@@ -68,8 +57,6 @@ async function startServer() {
         res.sendFile(webpPath);
         return;
       }
-
-      // 3. Book not found
       res.status(404).json({ error: "Cover not available" });
     } catch (err) {
       console.error(`[covers] Error serving cover for ${id}:`, err);

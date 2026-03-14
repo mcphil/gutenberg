@@ -10,7 +10,6 @@ import {
   parseSubjects, parseBookshelves, translateSubject, FILTER_TOPICS,
   isCopyrightProtectedDE
 } from "../../../shared/gutenberg";
-import { GenerativeCover } from "@/components/GenerativeCover";
 import { useRecentBooks, useReadingProgress } from "@/hooks/useLocalStorage";
 
 interface BookDetailProps {
@@ -166,7 +165,17 @@ export default function BookDetail({ bookId }: BookDetailProps) {
         {/* Cover */}
         <div className="shrink-0 sm:w-48 md:w-56">
           <div className="rounded-lg overflow-hidden shadow-lg" style={{ aspectRatio: "2/3" }}>
-            <GenerativeCover title={book.title} author={getAuthorDisplay(book)} previewText={summary?.shortSummary ?? book.subjects ?? ""} size="lg" className="w-full h-full" />
+            <figure className="w-full h-full m-0">
+              <img
+                src={`/api/covers/${book.gutenbergId}`}
+                alt={`Cover von ${book.title}`}
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
+                width={400}
+                height={560}
+              />
+            </figure>
           </div>
 
           {/* Reading progress */}
