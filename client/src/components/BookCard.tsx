@@ -57,7 +57,7 @@ export function BookCard({ book, shortSummary: propSummary, onClick, compact = f
       {/* Cover */}
       <div className="relative overflow-hidden" style={{ aspectRatio: "2/3" }}>
         <div className="absolute inset-0 transition-transform duration-300 group-hover:scale-105">
-          <GenerativeCover title={book.title} author={author} size={compact ? "sm" : "md"} className="absolute inset-0" />
+          <GenerativeCover title={book.title} author={author} previewText={shortSummary ?? book.subjects ?? ""} size={compact ? "sm" : "md"} className="absolute inset-0" />
         </div>
 
         {/* Hover overlay — summary + tags, anchored to bottom ~2/3 of cover */}

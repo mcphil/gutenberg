@@ -139,7 +139,7 @@ export default function BookDetail({ bookId }: BookDetailProps) {
         {/* Cover */}
         <div className="shrink-0 sm:w-48 md:w-56">
           <div className="rounded-lg overflow-hidden shadow-lg" style={{ aspectRatio: "2/3" }}>
-            <GenerativeCover title={book.title} author={getAuthorDisplay(book)} size="lg" className="w-full h-full" />
+            <GenerativeCover title={book.title} author={getAuthorDisplay(book)} previewText={summary?.shortSummary ?? book.subjects ?? ""} size="lg" className="w-full h-full" />
           </div>
 
           {/* Reading progress */}

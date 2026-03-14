@@ -1,0 +1,98 @@
+{
+  "query": "DESCRIBE books;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 3ro9iHMnksteyBe.2f084ba63ba1 --database 8bBPXpc4UL9EF8BMEK3VX4 --execute DESCRIBE books;",
+  "rows": [
+    {
+      "Field": "gutenbergId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "type",
+      "Type": "varchar(32)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "Text",
+      "Extra": ""
+    },
+    {
+      "Field": "issued",
+      "Type": "varchar(16)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "title",
+      "Type": "text",
+      "Null": "NO",
+      "Key": "MUL",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "language",
+      "Type": "varchar(64)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "authors",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "subjects",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "locc",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "bookshelves",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "importedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "copyrightProtectedUntil",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\ngutenbergId\tint\tNO\tPRI\tNULL\t\ntype\tvarchar(32)\tNO\t\tText\t\nissued\tvarchar(16)\tYES\t\tNULL\t\ntitle\ttext\tNO\tMUL\tNULL\t\nlanguage\tvarchar(64)\tNO\t\tNULL\t\nauthors\ttext\tYES\t\tNULL\t\nsubjects\ttext\tYES\t\tNULL\t\nlocc\tvarchar(64)\tYES\t\tNULL\t\nbookshelves\ttext\tYES\t\tNULL\t\nimportedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\ncopyrightProtectedUntil\tint\tYES\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}

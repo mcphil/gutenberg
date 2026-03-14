@@ -228,7 +228,7 @@ function BrowseSlide({ book, onRead, onDetail, isVisible }: BrowseSlideProps) {
         {/* Cover */}
         <div className="browse-cover">
           <div className="w-full h-full drop-shadow-xl rounded overflow-hidden">
-            <GenerativeCover title={book.title} author={author} size="lg" className="w-full h-full" />
+            <GenerativeCover title={book.title} author={author} previewText={shortSummary ?? book.subjects ?? ""} size="lg" className="w-full h-full" />
           </div>
         </div>
 

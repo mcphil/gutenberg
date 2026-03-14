@@ -1,27 +1,74 @@
 /**
- * GenerativeCover — deterministic book cover based on the original CoverFallback design.
+ * GenerativeCover — deterministic botanical book cover.
  *
- * Design principle:
- *  - Background: oklch(0.72 0.10 {hue}) — a muted, elegant colour derived from the title
- *  - Subtle texture: a repeating diagonal line pattern in a slightly lighter shade
- *  - Top label: "GUTENBERG NAVIGATOR" in small-caps, spaced tracking
- *  - Centre ornament: an open-book SVG icon
- *  - Bottom: title in Lora serif, author in a lighter weight below
+ * Design system (v4):
+ *  - Thin color bar at top matching the botanical background palette
+ *  - White header block with title (adaptive font size) and author
+ *  - Adaptive typography: binary-search for largest font (34→14px) fitting title in ≤3 lines
+ *  - Dynamic header height: grows with title, author always has proper spacing
+ *  - Botanical L-system fern as background (7 color palettes, deterministic per title)
+ *  - Keywords from preview text in UPPERCASE, white, no shadow
+ *  - Black bottom bar with "gutenberg-navigator.de"
  *
- * The hue is derived deterministically from the title string so the same book
- * always gets the same colour, but different books get visually distinct covers.
+ * Typography analysis of 2,420 German Gutenberg titles:
+ *  - 74% fit at 34px in ≤3 lines
+ *  - Font scales from 34px down to 14px for very long titles
+ *  - Header height: 115px (1-line title) → ~200px (3-line at 34px)
  */
 
-import { BookOpen } from "lucide-react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
-interface GenerativeCoverProps {
-  title: string;
-  author?: string;
-  size?: "sm" | "md" | "lg";
-  className?: string;
+// ─── German stopwords ──────────────────────────────────────────────────────────
+const STOPWORDS = new Set([
+  "der","die","das","den","dem","des","ein","eine","einer","einem","einen","eines",
+  "und","oder","aber","doch","denn","weil","wenn","als","ob","bis","seit","nach",
+  "vor","mit","ohne","für","gegen","über","unter","neben","zwischen","durch","bei",
+  "von","zu","an","auf","in","im","am","aus","um","ab","pro",
+  "ich","du","er","sie","es","wir","ihr","mich","dich","sich","uns","euch",
+  "mein","dein","sein","ihr","unser","euer","mir","dir","ihm","ihnen",
+  "ist","bin","bist","sind","seid","war","waren","hat","haben","hatte","hatten",
+  "wird","werden","wurde","wurden","worden","gewesen",
+  "kann","könnte","muss","müssen","soll","sollen","will","wollen","darf","dürfen",
+  "mag","möchte","lassen","macht","gibt","geht","kommt","steht",
+  "nicht","kein","keine","keiner","keinem","keinen","keines","nun","noch","schon",
+  "auch","sehr","mehr","viel","viele","alle","alles","jeder","jede","jedes","man",
+  "so","wie","was","wer","wo","wann","warum","welche","welcher","welches","welchen",
+  "da","hier","dort","dann","jetzt","immer","nie","oft","mal","ja","nein","ach",
+  "nur","eben","halt","wohl","zwar","dabei","damit","daran","darauf",
+  "daher","darum","davon","dazu","deshalb","deswegen","trotzdem","jedoch",
+  "außerdem","allerdings","nämlich","sondern","sowie","sowohl","entweder","weder",
+  "zum","zur","beim","ins","ans","aufs","vom","ums","fürs","hinter","hinterm",
+  "dieser","diese","dieses","diesem","diesen","jener","jene","jenes","jenem","jenen",
+  "selbst","solch","solche","solcher","solchem","solchen","solches","manche","mancher",
+  "ihn","deren","dessen","denen","worauf","worüber","worum","worin","womit",
+  "haben","sein","werden","tun","gehen","kommen","sehen","wissen","denken","glauben",
+  "sagen","fragen","stehen","liegen","legen","setzen","stellen","bringen",
+  "nehmen","geben","halten","heißen","bleiben","scheinen","beginnen","enden",
+  "habe","hast","habt","ward","wart","doch","zwar","gar","dass","daß",
+  "herauf","herab","quer","krumm","schier","meine","meiner","meinen","meinem",
+  "seine","seiner","seinen","seinem","sehe","stehe","steh","armer","arme","armen",
+]);
+
+// ─── Color palettes ────────────────────────────────────────────────────────────
+// [bg_top_rgb, bg_bottom_rgb, branch_young_rgb, branch_old_rgb]
+const PALETTES: [string, string, string, string][] = [
+  ["rgb(12,35,60)",   "rgb(22,60,100)",  "rgb(100,175,235)", "rgb(195,235,255)"],  // ocean blue
+  ["rgb(50,18,6)",    "rgb(90,38,12)",   "rgb(230,140,55)",  "rgb(255,215,140)"],  // amber/rust
+  ["rgb(14,45,22)",   "rgb(26,78,38)",   "rgb(85,210,110)",  "rgb(195,255,175)"],  // forest green
+  ["rgb(48,12,48)",   "rgb(85,22,85)",   "rgb(205,105,230)", "rgb(245,195,255)"],  // violet
+  ["rgb(52,38,6)",    "rgb(95,70,12)",   "rgb(225,195,65)",  "rgb(255,245,165)"],  // gold
+  ["rgb(6,44,48)",    "rgb(12,80,85)",   "rgb(65,205,215)",  "rgb(165,255,255)"],  // teal
+  ["rgb(48,6,22)",    "rgb(88,12,42)",   "rgb(235,85,135)",  "rgb(255,195,215)"],  // rose/crimson
+];
+
+// Parse "rgb(r,g,b)" → [r, g, b]
+function parseRgb(s: string): [number, number, number] {
+  const m = s.match(/(\d+),\s*(\d+),\s*(\d+)/);
+  return m ? [+m[1], +m[2], +m[3]] : [0, 0, 0];
 }
 
+// ─── Deterministic hash ────────────────────────────────────────────────────────
 function hashString(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) {
@@ -30,106 +77,384 @@ function hashString(s: string): number {
   return Math.abs(h);
 }
 
-/** Returns an oklch hue (0–360) derived from the title */
-function titleHue(title: string): number {
-  const t = title || "?";
-  // Use a wider spread so adjacent titles differ visually
-  return hashString(t) % 360;
+// ─── Seeded RNG (mulberry32) ───────────────────────────────────────────────────
+function makeRng(seed: number) {
+  let s = seed >>> 0;
+  return () => {
+    s += 0x6d2b79f5;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-/** Lightness offset for the texture lines (+0.06 above base) */
-function textureLightness(hue: number): number {
-  // Slightly lighter than the base for a subtle embossed look
-  return 0.78;
+// ─── L-System ─────────────────────────────────────────────────────────────────
+function lsystemExpand(axiom: string, rules: Record<string, string>, iterations: number): string {
+  let s = axiom;
+  for (let i = 0; i < iterations; i++) {
+    s = s.split("").map(c => rules[c] ?? c).join("");
+  }
+  return s;
 }
 
-export function GenerativeCover({ title, author, size = "md", className }: GenerativeCoverProps) {
-  const hue = titleHue(title);
-  const bgColor = `oklch(0.72 0.10 ${hue})`;
-  const textureColor = `oklch(${textureLightness(hue)} 0.10 ${hue})`;
-  const shadowColor = `oklch(0.42 0.10 ${hue})`;
+interface Segment {
+  x0: number; y0: number;
+  x1: number; y1: number;
+  depth: number;
+}
 
-  // Icon size by cover size
-  const iconSize = size === "sm" ? 16 : size === "lg" ? 32 : 24;
-  const titleClamp = size === "sm" ? "line-clamp-3" : "line-clamp-4";
-  const titleSize = size === "sm" ? "text-[9px]" : size === "lg" ? "text-sm" : "text-xs";
-  const authorSize = size === "sm" ? "text-[7px]" : size === "lg" ? "text-xs" : "text-[9px]";
-  const labelSize = size === "sm" ? "text-[5px]" : size === "lg" ? "text-[8px]" : "text-[6px]";
-  const padding = size === "sm" ? "px-1.5 py-1.5" : size === "lg" ? "px-4 py-4" : "px-2.5 py-2.5";
+function lsystemSegments(
+  s: string,
+  startAngleDeg: number,
+  angleDeg: number,
+  step: number
+): { segments: Segment[]; maxDepth: number } {
+  const angle = (angleDeg * Math.PI) / 180;
+  let x = 0, y = 0;
+  let heading = (startAngleDeg * Math.PI) / 180;
+  const stack: [number, number, number][] = [];
+  const depthStack: number[] = [];
+  const segments: Segment[] = [];
+  let depth = 0;
+  let maxDepth = 0;
 
-  // Unique pattern id per title to avoid SVG id collisions
-  const patternId = `cover-pattern-${hashString(title) % 99999}`;
+  for (const c of s) {
+    if (c === "F" || c === "G") {
+      const nx = x + step * Math.cos(heading);
+      const ny = y + step * Math.sin(heading);
+      segments.push({ x0: x, y0: y, x1: nx, y1: ny, depth });
+      x = nx; y = ny;
+    } else if (c === "+") {
+      heading += angle;
+    } else if (c === "-") {
+      heading -= angle;
+    } else if (c === "[") {
+      stack.push([x, y, heading]);
+      depthStack.push(depth);
+      depth++;
+      maxDepth = Math.max(maxDepth, depth);
+    } else if (c === "]") {
+      [x, y, heading] = stack.pop()!;
+      depth = depthStack.pop()!;
+    }
+  }
+  return { segments, maxDepth };
+}
+
+// ─── Adaptive typography helpers ───────────────────────────────────────────────
+
+/**
+ * Word-wrap text into lines fitting maxW pixels using a canvas 2D context.
+ */
+function wordWrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+  for (const w of words) {
+    const test = current ? `${current} ${w}` : w;
+    if (ctx.measureText(test).width > maxW && current) {
+      lines.push(current);
+      current = w;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+/**
+ * Find the largest font size (between minSize and maxSize) that fits title
+ * in at most maxLines lines within maxW pixels.
+ * Uses canvas for accurate measurement (handles Unicode/umlauts).
+ */
+function findBestFontSize(
+  ctx: CanvasRenderingContext2D,
+  title: string,
+  maxW: number,
+  maxSize = 34,
+  minSize = 14,
+  maxLines = 3
+): number {
+  let best = minSize;
+  let lo = minSize, hi = maxSize;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    ctx.font = `bold ${mid}px "Noto Serif", Georgia, serif`;
+    const lines = wordWrap(ctx, title, maxW);
+    if (lines.length <= maxLines) {
+      best = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return best;
+}
+
+// ─── Extract meaningful keywords from preview text ─────────────────────────────
+function extractKeywords(text: string, max = 22): string[] {
+  // Use (?<![a-zA-ZäöüÄÖÜß]) instead of \b to handle umlaut word starts (Ä, Ö, Ü)
+  const matches = text.match(/(?<![a-zA-ZäöüÄÖÜß])[a-zA-ZäöüÄÖÜß]{4,}(?![a-zA-ZäöüÄÖÜß])/g) ?? [];
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const w of matches) {
+    const wl = w.toLowerCase();
+    if (!STOPWORDS.has(wl) && !seen.has(wl)) {
+      seen.add(wl);
+      result.push(w.toUpperCase());
+    }
+    if (result.length >= max) break;
+  }
+  return result;
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+interface GenerativeCoverProps {
+  title: string;
+  author?: string;
+  previewText?: string;
+  size?: "sm" | "md" | "lg";
+  className?: string;
+}
+
+export function GenerativeCover({
+  title,
+  author = "",
+  previewText = "",
+  size = "md",
+  className,
+}: GenerativeCoverProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [rendered, setRendered] = useState(false);
+
+  // Stable seed derived from title
+  const seed = useMemo(() => hashString(title || "?"), [title]);
+  const paletteIdx = seed % PALETTES.length;
+  const palette = PALETTES[paletteIdx];
+
+  // Keywords extracted once
+  const keywords = useMemo(() => extractKeywords(previewText), [previewText]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const rng = makeRng(seed);
+
+    // ── Layout constants ──
+    const PADDING = Math.round(W * 0.035);         // ~14px at 400w
+    const MAX_TEXT_W = W - PADDING * 2;
+    const COLOR_BAR_H = Math.round(H * 0.028);     // ~16px at 560h
+    const BOTTOM_BAR_H = Math.round(H * 0.043);    // ~24px at 560h
+    const TITLE_TOP_PAD = Math.round(H * 0.022);   // ~12px
+    const TITLE_AUTHOR_GAP = Math.round(H * 0.018);// ~10px
+    const AUTHOR_BOTTOM_PAD = Math.round(H * 0.018);
+    const AUTHOR_FONT_SIZE = Math.round(W * 0.043);// ~17px at 400w
+
+    // ── Find optimal title font size ──
+    const titleFontSize = findBestFontSize(ctx, title, MAX_TEXT_W, Math.round(W * 0.085), Math.round(W * 0.035), 3);
+    const titleLineH = Math.ceil(titleFontSize * 1.28);
+
+    ctx.font = `bold ${titleFontSize}px "Noto Serif", Georgia, serif`;
+    const titleLines = wordWrap(ctx, title, MAX_TEXT_W);
+
+    const titleBlockH = titleLines.length * titleLineH;
+
+    ctx.font = `${AUTHOR_FONT_SIZE}px "Noto Serif", Georgia, serif`;
+    const authorMetrics = ctx.measureText(author);
+    const authorH = Math.ceil(authorMetrics.actualBoundingBoxAscent + authorMetrics.actualBoundingBoxDescent);
+
+    // ── Dynamic header height ──
+    const headerContentH = TITLE_TOP_PAD + titleBlockH + TITLE_AUTHOR_GAP + authorH + AUTHOR_BOTTOM_PAD;
+    const MIN_BOTANICAL = Math.round(H * 0.46); // at least 46% of height for botanical
+    let HEADER_H = COLOR_BAR_H + headerContentH;
+    if (H - HEADER_H - BOTTOM_BAR_H < MIN_BOTANICAL) {
+      HEADER_H = H - BOTTOM_BAR_H - MIN_BOTANICAL;
+    }
+    const VIS_H = H - HEADER_H - BOTTOM_BAR_H;
+
+    // ── Parse palette colors ──
+    const bgTop    = parseRgb(palette[0]);
+    const bgBottom = parseRgb(palette[1]);
+    const brYoung  = parseRgb(palette[2]);
+    const brOld    = parseRgb(palette[3]);
+
+    // ── Draw thin color bar at top ──
+    ctx.fillStyle = palette[0];
+    ctx.fillRect(0, 0, W, COLOR_BAR_H);
+
+    // ── Draw white header block ──
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, COLOR_BAR_H, W, HEADER_H - COLOR_BAR_H);
+
+    // Subtle separator line
+    ctx.fillStyle = "#e0e0e0";
+    ctx.fillRect(0, HEADER_H - 1, W, 1);
+
+    // ── Draw title lines ──
+    ctx.fillStyle = "#111111";
+    ctx.font = `bold ${titleFontSize}px "Noto Serif", Georgia, serif`;
+    ctx.textBaseline = "top";
+    let y = COLOR_BAR_H + TITLE_TOP_PAD;
+    for (const line of titleLines.slice(0, 3)) {
+      ctx.fillText(line, PADDING, y);
+      y += titleLineH;
+    }
+
+    // ── Draw author line ──
+    ctx.fillStyle = "#555555";
+    ctx.font = `${AUTHOR_FONT_SIZE}px "Noto Serif", Georgia, serif`;
+    ctx.textBaseline = "top";
+    ctx.fillText(author, PADDING, y + TITLE_AUTHOR_GAP);
+
+    // ── Botanical gradient background ──
+    for (let py = HEADER_H; py < H - BOTTOM_BAR_H; py++) {
+      const t = (py - HEADER_H) / Math.max(VIS_H, 1);
+      const r = Math.round(bgTop[0] + t * (bgBottom[0] - bgTop[0]));
+      const g = Math.round(bgTop[1] + t * (bgBottom[1] - bgTop[1]));
+      const b = Math.round(bgTop[2] + t * (bgBottom[2] - bgTop[2]));
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(0, py, W, 1);
+    }
+
+    // ── L-System fern ──
+    const axiom = "X";
+    const rules: Record<string, string> = { X: "F+[[X]-X]-F[-FX]+X", F: "FF" };
+    const angleDeg = 22 + (seed % 10);
+    const startAngle = 75 + (seed % 30);
+    const step = 3.2 + (seed % 3) * 0.3;
+
+    const lStr = lsystemExpand(axiom, rules, 5);
+    const { segments, maxDepth } = lsystemSegments(lStr, startAngle, angleDeg, step);
+
+    const allX = segments.flatMap(s => [s.x0, s.x1]);
+    const allY = segments.flatMap(s => [s.y0, s.y1]);
+    const minX = Math.min(...allX), maxX = Math.max(...allX);
+    const minY = Math.min(...allY), maxY = Math.max(...allY);
+
+    const scaleX = (W - 20) / Math.max(maxX - minX, 1);
+    const scaleY = (VIS_H - 20) / Math.max(maxY - minY, 1);
+    const scale = Math.min(scaleX, scaleY) * 0.82;
+
+    const renderedW = (maxX - minX) * scale;
+    const offsetX = (W - renderedW) / 2 - minX * scale;
+
+    const transform = (px: number, py: number): [number, number] => {
+      const tx = px * scale + offsetX;
+      const ty = VIS_H - ((py - minY) * scale + 10);
+      return [Math.round(tx), Math.round(ty + HEADER_H)];
+    };
+
+    for (const seg of segments) {
+      const t = seg.depth / Math.max(maxDepth, 1);
+      const r = Math.round(brYoung[0] + t * (brOld[0] - brYoung[0]));
+      const g = Math.round(brYoung[1] + t * (brOld[1] - brYoung[1]));
+      const b = Math.round(brYoung[2] + t * (brOld[2] - brYoung[2]));
+      const [x0, y0] = transform(seg.x0, seg.y0);
+      const [x1, y1] = transform(seg.x1, seg.y1);
+      if (y0 < HEADER_H && y1 < HEADER_H) continue;
+      if (y0 > H - BOTTOM_BAR_H && y1 > H - BOTTOM_BAR_H) continue;
+      const lineW = Math.max(1, Math.round(2.5 - t * 1.8));
+      ctx.strokeStyle = `rgb(${r},${g},${b})`;
+      ctx.lineWidth = lineW;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+    }
+
+    // ── Keywords overlay — UPPERCASE, white, no shadow ──
+    const placed: [number, number, number, number][] = [];
+
+    const overlaps = (x: number, y: number, tw: number, th: number) => {
+      for (const [rx, ry, rw, rh] of placed) {
+        if (!(x + tw < rx - 8 || x > rx + rw + 8 || y + th < ry - 6 || y > ry + rh + 6)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    ctx.textBaseline = "top";
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = "transparent";
+
+    for (const word of keywords) {
+      const fontSize = Math.round(11 + rng() * 11); // 11–22px
+      ctx.font = `bold ${fontSize}px "Noto Sans", Arial, sans-serif`;
+      const metrics = ctx.measureText(word);
+      const tw = Math.ceil(metrics.width);
+      const th = fontSize;
+
+      let placed_ = false;
+      for (let attempt = 0; attempt < 300; attempt++) {
+        const wx = Math.round(8 + rng() * Math.max(1, W - tw - 16));
+        const wy = Math.round(HEADER_H + 8 + rng() * Math.max(1, H - BOTTOM_BAR_H - HEADER_H - th - 14));
+        if (!overlaps(wx, wy, tw, th)) {
+          placed.push([wx, wy, tw, th]);
+          ctx.fillStyle = "rgba(255,255,255,0.92)";
+          ctx.fillText(word, wx, wy);
+          placed_ = true;
+          break;
+        }
+      }
+      if (!placed_) {
+        // Place without collision check as last resort
+        const wx = Math.round(8 + rng() * Math.max(1, W - tw - 16));
+        const wy = Math.round(HEADER_H + 8 + rng() * Math.max(1, H - BOTTOM_BAR_H - HEADER_H - th - 14));
+        ctx.fillStyle = "rgba(255,255,255,0.92)";
+        ctx.fillText(word, wx, wy);
+      }
+    }
+
+    // ── Black bottom bar with URL ──
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, H - BOTTOM_BAR_H, W, BOTTOM_BAR_H);
+
+    const urlFontSize = Math.round(W * 0.028); // ~11px at 400w
+    ctx.font = `bold ${urlFontSize}px "Noto Sans", Arial, sans-serif`;
+    ctx.fillStyle = "rgba(180,180,180,0.9)";
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "right";
+    ctx.fillText("gutenberg-navigator.de", W - 10, H - BOTTOM_BAR_H / 2);
+    ctx.textAlign = "left"; // reset
+
+    setRendered(true);
+  }, [title, author, keywords, seed, palette]);
+
+  // Dimensions based on size prop
+  const dims = size === "sm"
+    ? { w: 120, h: 168 }
+    : size === "lg"
+    ? { w: 400, h: 560 }
+    : { w: 200, h: 280 };
 
   return (
     <div
-      className={cn("relative w-full h-full flex flex-col overflow-hidden select-none", className)}
-      style={{ background: bgColor }}
+      className={cn("relative w-full h-full overflow-hidden select-none", className)}
       aria-label={`Cover: ${title}`}
       role="img"
     >
-      {/* Diagonal line texture */}
-      <svg
-        className="absolute inset-0 w-full h-full pointer-events-none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <defs>
-          <pattern
-            id={patternId}
-            patternUnits="userSpaceOnUse"
-            width="8"
-            height="8"
-            patternTransform="rotate(45)"
-          >
-            <line x1="0" y1="0" x2="0" y2="8" stroke={textureColor} strokeWidth="0.8" strokeOpacity="0.45" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill={`url(#${patternId})`} />
-      </svg>
-
-      {/* Top border line */}
-      <div className="absolute top-0 left-0 right-0 h-px" style={{ background: "rgba(255,255,255,0.25)" }} />
-      {/* Bottom border line */}
-      <div className="absolute bottom-0 left-0 right-0 h-px" style={{ background: "rgba(0,0,0,0.20)" }} />
-
-      {/* Content */}
-      <div className={cn("relative z-10 flex flex-col h-full", padding)}>
-        {/* Top label */}
-        <p
-          className={cn("font-semibold tracking-widest uppercase text-white/60 mb-auto", labelSize)}
-          style={{ fontFamily: "system-ui, sans-serif", letterSpacing: "0.18em" }}
-        >
-          Gutenberg Navigator
-        </p>
-
-        {/* Centre icon */}
-        <div className="flex justify-center my-auto">
-          <BookOpen
-            style={{ width: iconSize, height: iconSize, color: "rgba(255,255,255,0.65)" }}
-            strokeWidth={1.5}
-          />
-        </div>
-
-        {/* Bottom: title + author */}
-        <div className="mt-auto">
-          {/* Thin separator */}
-          <div className="w-8 h-px mb-1.5" style={{ background: "rgba(255,255,255,0.40)" }} />
-          <p
-            className={cn("font-semibold text-white leading-tight", titleSize, titleClamp)}
-            style={{ fontFamily: "Lora, Georgia, serif", textShadow: `0 1px 3px ${shadowColor}` }}
-          >
-            {title}
-          </p>
-          {author && (
-            <p
-              className={cn("text-white/70 mt-0.5 leading-tight line-clamp-1", authorSize)}
-              style={{ fontFamily: "Lora, Georgia, serif" }}
-            >
-              {author}
-            </p>
-          )}
-        </div>
-      </div>
+      {/* Fallback background while canvas renders */}
+      {!rendered && (
+        <div
+          className="absolute inset-0"
+          style={{ background: palette[0] }}
+        />
+      )}
+      <canvas
+        ref={canvasRef}
+        width={dims.w}
+        height={dims.h}
+        className="w-full h-full"
+        style={{ display: "block", imageRendering: "auto" }}
+      />
     </div>
   );
 }
