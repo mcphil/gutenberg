@@ -11,6 +11,7 @@ import { serveStatic, setupVite } from "./vite";
 import { getGenCoverPath } from "../generativeCoverCache";
 import { getEpubPath } from "../epubs";
 import { serveSitemapIndex, serveStaticSitemap, serveBooksSitemap, serveAuthorsSitemap } from "../sitemap";
+import { registerAdminPrecacheRoute } from "../adminPrecache";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -39,11 +40,30 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
   // Version marker — verifiable with: curl -I https://gutenberg-navigator.de/book/:id | grep x-app-version
-  const APP_VERSION = "2026-03-14-og-fix";
+  const APP_VERSION = "2026-03-16-https-redirect";
   app.use((_req, res, next) => {
     res.setHeader("X-App-Version", APP_VERSION);
     next();
   });
+
+  // HTTP → HTTPS + www → non-www redirects (production only)
+  // Google Search Console requires all pages to be served over HTTPS.
+  // Canonical domain is gutenberg-navigator.de (no www prefix).
+  if (process.env.NODE_ENV !== "development") {
+    app.use((req, res, next) => {
+      const proto = req.headers["x-forwarded-proto"];
+      const host = (req.headers.host ?? "").toLowerCase();
+
+      const needsHttps = proto && proto !== "https";
+      const needsNonWww = host.startsWith("www.");
+
+      if (needsHttps || needsNonWww) {
+        const canonicalHost = needsNonWww ? host.replace(/^www\./, "") : host;
+        return res.redirect(301, `https://${canonicalHost}${req.originalUrl}`);
+      }
+      next();
+    });
+  }
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
@@ -97,6 +117,9 @@ async function startServer() {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+
+  // Admin: pre-cache EPUBs via rsync (token-protected)
+  registerAdminPrecacheRoute(app);
 
   // Dynamic sitemaps — served under /api/sitemap/* to bypass infrastructure-level static sitemap
   app.get("/api/sitemap.xml", serveSitemapIndex);

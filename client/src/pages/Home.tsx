@@ -1,22 +1,59 @@
-import { useState, useEffect } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { useState, useEffect, useCallback } from "react";
+import { AppHeader, SearchMode } from "@/components/AppHeader";
 import Catalog from "./Catalog";
 import BrowseMode from "./BrowseMode";
 import { useAppPreferences } from "@/hooks/useLocalStorage";
 import { BookOpen, Clock, Shuffle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useReadingProgress } from "@/hooks/useLocalStorage";
 import { trpc } from "@/lib/trpc";
+import { FullTextSearchResults } from "@/components/FullTextSearchResults";
 
 export default function Home() {
   const [, navigate] = useLocation();
+  const search = useSearch();
   const { appPrefs, updateAppPref } = useAppPreferences();
   const [view, setView] = useState<"grid" | "list" | "browse">(appPrefs.defaultView);
-  const [searchQuery, setSearchQuery] = useState("");
   const { getAllProgress, removeProgress } = useReadingProgress();
   const { data: countData } = trpc.books.count.useQuery();
   const bookCount = countData ?? 2420;
+
+  // Read searchQuery from URL (?q=...) so it persists across navigation
+  const searchQuery = new URLSearchParams(search).get("q") ?? "";
+
+  // Search mode: "title" (default) or "fulltext"
+  // Stored in URL as ?mode=fulltext to persist across navigation
+  const rawMode = new URLSearchParams(search).get("mode");
+  const searchMode: SearchMode = rawMode === "fulltext" ? "fulltext" : "title";
+
+  const handleSearchChange = useCallback((q: string) => {
+    const current = new URLSearchParams(window.location.search);
+    if (q) {
+      current.set("q", q);
+    } else {
+      current.delete("q");
+    }
+    // Reset page when search changes
+    current.delete("page");
+    const qs = current.toString();
+    navigate(qs ? `/?${qs}` : "/", { replace: true });
+  }, [navigate]);
+
+  const handleSearchModeChange = useCallback((mode: SearchMode) => {
+    const current = new URLSearchParams(window.location.search);
+    if (mode === "fulltext") {
+      current.set("mode", "fulltext");
+    } else {
+      current.delete("mode");
+    }
+    // Clear search when switching modes to avoid confusion
+    current.delete("q");
+    current.delete("page");
+    const qs = current.toString();
+    navigate(qs ? `/?${qs}` : "/", { replace: true });
+  }, [navigate]);
+
   // Sync dark mode to <html>
   useEffect(() => {
     if (appPrefs.darkMode) {
@@ -55,6 +92,8 @@ export default function Home() {
     return <BrowseMode onClose={() => handleViewChange("grid")} />;
   }
 
+  const isFullTextMode = searchMode === "fulltext";
+
   return (
     <div className="min-h-screen bg-background">
       <AppHeader
@@ -63,12 +102,14 @@ export default function Home() {
         darkMode={appPrefs.darkMode}
         onToggleDark={handleToggleDark}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={handleSearchChange}
+        searchMode={searchMode}
+        onSearchModeChange={handleSearchModeChange}
       />
 
       <main className="container">
-        {/* Hero / Welcome — only shown when no search */}
-        {!searchQuery && (
+        {/* Hero / Welcome — only shown when no search and not in fulltext mode */}
+        {!searchQuery && !isFullTextMode && (
           <div className="py-10 text-center border-b border-border mb-2">
             <div className="flex items-center justify-center gap-2 mb-3">
               <BookOpen className="w-7 h-7 text-primary" />
@@ -92,8 +133,8 @@ export default function Home() {
           </div>
         )}
 
-        {/* Continue reading */}
-        {recentProgress.length > 0 && !searchQuery && (
+        {/* Continue reading — only in title mode without active search */}
+        {recentProgress.length > 0 && !searchQuery && !isFullTextMode && (
           <div className="py-5 border-b border-border mb-2">
             <div className="flex items-center gap-2 mb-3">
               <Clock className="w-4 h-4 text-muted-foreground" />
@@ -154,18 +195,36 @@ export default function Home() {
           </div>
         )}
 
-        {/* SEO: H2 heading for the catalog section — visible but styled subtly */}
-        {!searchQuery && (
-          <h2 className="sr-only">
-            Deutschsprachige Klassiker — über 2.400 gemeinfreie Werke kostenlos lesen
-          </h2>
+        {/* Full-text search mode */}
+        {isFullTextMode ? (
+          <>
+            {searchQuery ? (
+              <FullTextSearchResults query={searchQuery} />
+            ) : (
+              <div className="py-16 text-center text-muted-foreground">
+                <p className="text-sm font-medium mb-1">Volltext-Suche aktiv</p>
+                <p className="text-xs opacity-70">
+                  Gib einen Begriff ein, um im Inhalt gecachter Bücher zu suchen.
+                </p>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* SEO: H2 heading for the catalog section */}
+            {!searchQuery && (
+              <h2 className="sr-only">
+                Deutschsprachige Klassiker — über 2.400 gemeinfreie Werke kostenlos lesen
+              </h2>
+            )}
+            {searchQuery && (
+              <h2 className="sr-only">
+                Suchergebnisse für „{searchQuery}"
+              </h2>
+            )}
+            <Catalog view={view as "grid" | "list"} searchQuery={searchQuery} />
+          </>
         )}
-        {searchQuery && (
-          <h2 className="sr-only">
-            Suchergebnisse für „{searchQuery}“
-          </h2>
-        )}
-        <Catalog view={view as "grid" | "list"} searchQuery={searchQuery} />
       </main>
     </div>
   );

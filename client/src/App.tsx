@@ -12,6 +12,8 @@ import Reader from "./pages/Reader";
 import Impressum from "./pages/Impressum";
 import Datenschutz from "./pages/Datenschutz";
 import AuthorPage from "./pages/AuthorPage";
+import AdminPrecache from "./pages/AdminPrecache";
+import ReadingList from "./pages/ReadingList";
 
 function BookDetailRoute() {
   const params = useParams<{ id: string }>();
@@ -43,6 +45,8 @@ function Router() {
       <Route path="/author/:name" component={AuthorPage} />
       <Route path="/impressum" component={Impressum} />
       <Route path="/datenschutz" component={Datenschutz} />
+      <Route path="/admin/precache" component={AdminPrecache} />
+      <Route path="/leseliste" component={ReadingList} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

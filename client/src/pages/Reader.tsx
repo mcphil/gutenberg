@@ -15,6 +15,7 @@ import {
 import { trpc } from "@/lib/trpc";
 import { useReadingProgress, useBookmarks, useReaderPreferences } from "@/hooks/useLocalStorage";
 import { getEpubProxyUrl, getCoverUrlById, isCopyrightProtectedDE } from "../../../shared/gutenberg";
+import ScrollReader from "@/components/ScrollReader";
 
 interface ReaderProps {
   bookId: number;
@@ -28,9 +29,9 @@ const THEME_STYLES: Record<ReaderTheme, {
   text: string;
   label: string;
 }> = {
-  light: { bg: "#FEFDFB", scrollBg: "#EAE5DC", text: "#2D2416", label: "Hell" },
-  sepia: { bg: "#F4ECD8", scrollBg: "#DDD3BC", text: "#3B2F1E", label: "Sepia" },
-  dark:  { bg: "#242220", scrollBg: "#111110", text: "#E8E0D4", label: "Dunkel" },
+  light: { bg: "#FEFDFB", scrollBg: "#FEFDFB", text: "#2D2416", label: "Hell" },
+  sepia: { bg: "#F4ECD8", scrollBg: "#F4ECD8", text: "#3B2F1E", label: "Sepia" },
+  dark:  { bg: "#242220", scrollBg: "#242220", text: "#E8E0D4", label: "Dunkel" },
 };
 
 export default function Reader({ bookId }: ReaderProps) {
@@ -39,8 +40,6 @@ export default function Reader({ bookId }: ReaderProps) {
   const { saveProgress, getProgress } = useReadingProgress();
   const { addBookmark, getBookmarksForBook, removeBookmark } = useBookmarks();
 
-  // location is only used for initial positioning; in scroll mode we don't
-  // feed it back from the relocated event to avoid the jump-back loop.
   const [location, setLocation] = useState<string | number>(0);
   const [currentPage, setCurrentPage] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -51,45 +50,42 @@ export default function Reader({ bookId }: ReaderProps) {
 
   const renditionRef = useRef<Rendition | null>(null);
   const locationRef = useRef<string | number>(0);
-  // Prevents the scroll-restore from running more than once per mount
-  const scrollRestoredRef = useRef(false);
-  // Debounce timer for scroll-position saving
-  const scrollSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isScrollMode = prefs.readingMode === "scroll";
 
   const { data: book } = trpc.books.byId.useQuery({ id: bookId });
 
-  // Load saved position once on mount
+  // Saved position for initial load
+  const savedProgress = getProgress(bookId);
+  const initialCfi = savedProgress?.cfi ?? undefined;
+  const initialScrollTop = savedProgress?.scrollTop ?? 0;
+
+  // Load saved position once on mount (for paginated mode)
   useEffect(() => {
     const saved = getProgress(bookId);
     if (saved?.cfi) {
       setLocation(saved.cfi);
       locationRef.current = saved.cfi;
     }
-    // Reset restore flag when bookId changes
-    scrollRestoredRef.current = false;
   }, [bookId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (book) {
       setBookTitle(book.title);
       setBookCover(getCoverUrlById(bookId));
-      // § 64 UrhG: redirect to book detail if still under copyright in Germany
       if (isCopyrightProtectedDE(book.authors, new Date().getFullYear(), book.copyrightProtectedUntil)) {
         navigate(`/book/${bookId}`);
       }
     }
   }, [book, bookId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Build CSS injected into the EPUB iframe
-  const getEpubStyles = useCallback(() => {
+  // ── Paginated mode: epub styles ──────────────────────────────
+  const getPaginatedStyles = useCallback(() => {
     const theme = THEME_STYLES[prefs.theme];
     const fontFamily =
       prefs.fontFamily === "serif"
         ? "'Merriweather', 'Georgia', serif"
         : "'Inter', 'system-ui', sans-serif";
-    const isScroll = prefs.readingMode === "scroll";
 
     return {
       body: {
@@ -98,12 +94,10 @@ export default function Reader({ bookId }: ReaderProps) {
         "font-family": fontFamily,
         "font-size": `${prefs.fontSize}px !important`,
         "line-height": `${prefs.lineHeight} !important`,
-        "max-width": isScroll ? "100ch" : `${prefs.maxWidth}px`,
+        "max-width": `${prefs.maxWidth}px`,
         margin: "0 auto",
-        padding: isScroll ? "3rem 2rem 6rem" : "2rem 1.5rem",
-        "box-shadow": isScroll ? "0 0 0 1px rgba(0,0,0,0.06), 0 2px 24px rgba(0,0,0,0.08)" : "none",
+        padding: "2rem 1.5rem",
       },
-      html: isScroll ? { background: theme.scrollBg } : {},
       p: {
         "font-size": `${prefs.fontSize}px !important`,
         "line-height": `${prefs.lineHeight} !important`,
@@ -118,17 +112,18 @@ export default function Reader({ bookId }: ReaderProps) {
     };
   }, [prefs]);
 
-  const applyStyles = useCallback(
+  const applyPaginatedStyles = useCallback(
     (rendition: Rendition) => {
-      rendition.themes.default(getEpubStyles());
+      rendition.themes.default(getPaginatedStyles());
     },
-    [getEpubStyles]
+    [getPaginatedStyles]
   );
 
-  const handleRendition = useCallback(
+  // ── Paginated mode: rendition callback ───────────────────────
+  const handlePaginatedRendition = useCallback(
     (rendition: Rendition) => {
       renditionRef.current = rendition;
-      applyStyles(rendition);
+      applyPaginatedStyles(rendition);
 
       rendition.book.ready.then(() => {
         rendition.book.locations.generate(1024).catch(() => {});
@@ -138,81 +133,50 @@ export default function Reader({ bookId }: ReaderProps) {
         const cfi = loc.start.cfi;
         const pct = loc.start.percentage ?? 0;
         locationRef.current = cfi;
-
-        // In scroll mode: do NOT call setLocation — that would cause ReactReader
-        // to jump back to the CFI on every scroll step.
-        // In paginated mode: update location so prev/next arrows work correctly.
-        if (!isScrollMode) {
-          setCurrentPage(Math.round(pct * 100));
-          saveProgress(bookId, cfi, pct, bookTitle, bookCover);
-        }
-
+        setCurrentPage(Math.round(pct * 100));
+        saveProgress(bookId, cfi, pct, bookTitle, bookCover);
         const bms = getBookmarksForBook(bookId);
         setIsBookmarked(bms.some((b) => b.cfi === cfi));
       });
-
-      // Scroll mode: attach scroll listener once after first render
-      if (isScrollMode) {
-        const onRendered = () => {
-          try {
-            const contents = rendition.getContents();
-            const doc = (contents as unknown as Array<{ document: Document }>)?.[0]?.document;
-            const scrollEl = doc?.scrollingElement ?? doc?.documentElement;
-            if (!scrollEl) return;
-
-            // Restore saved scrollTop exactly once
-            if (!scrollRestoredRef.current) {
-              scrollRestoredRef.current = true;
-              const saved = getProgress(bookId);
-              if (saved?.scrollTop && saved.scrollTop > 0) {
-                setTimeout(() => {
-                  scrollEl.scrollTop = saved.scrollTop!;
-                }, 200);
-              }
-            }
-
-            // Throttled scroll → save progress every 2 s
-            const onScroll = () => {
-              if (scrollSaveTimerRef.current) clearTimeout(scrollSaveTimerRef.current);
-              scrollSaveTimerRef.current = setTimeout(() => {
-                const st = scrollEl.scrollTop;
-                const cfi = typeof locationRef.current === "string" ? locationRef.current : "";
-                const pct = scrollEl.scrollHeight > 0 ? st / scrollEl.scrollHeight : 0;
-                setCurrentPage(Math.round(pct * 100));
-                saveProgress(bookId, cfi, pct, bookTitle, bookCover, st);
-              }, 2000);
-            };
-
-            // Remove any previously attached listener before adding a new one
-            scrollEl.removeEventListener("scroll", onScroll);
-            scrollEl.addEventListener("scroll", onScroll, { passive: true });
-          } catch {
-            // ignore cross-origin or timing errors
-          }
-        };
-
-        rendition.on("rendered", onRendered);
-      }
     },
-    [applyStyles, bookId, bookTitle, bookCover, saveProgress, getBookmarksForBook, isScrollMode, getProgress]
+    [applyPaginatedStyles, bookId, bookTitle, bookCover, saveProgress, getBookmarksForBook]
   );
 
-  // Re-apply styles when preferences change (font, theme, size…)
+  // Re-apply paginated styles when prefs change
   useEffect(() => {
-    if (renditionRef.current) {
-      applyStyles(renditionRef.current);
+    if (!isScrollMode && renditionRef.current) {
+      applyPaginatedStyles(renditionRef.current);
     }
-  }, [prefs, applyStyles]);
+  }, [prefs, applyPaginatedStyles, isScrollMode]);
 
-  // In paginated mode: locationChanged feeds back into state for prev/next nav
-  // In scroll mode: we only update the ref, never the state, to prevent jumps
-  const handleLocationChange = useCallback((loc: string | number) => {
+  const handlePaginatedLocationChange = useCallback((loc: string | number) => {
     locationRef.current = loc;
-    if (!isScrollMode) {
-      setLocation(loc);
-    }
-  }, [isScrollMode]);
+    setLocation(loc);
+  }, []);
 
+  // ── Scroll mode callbacks ────────────────────────────────────
+  const handleScrollRendition = useCallback((rendition: Rendition) => {
+    renditionRef.current = rendition;
+  }, []);
+
+  const handleScrollProgress = useCallback(
+    (cfi: string, pct: number, scrollTop: number) => {
+      setCurrentPage(Math.round(pct * 100));
+      saveProgress(bookId, cfi, pct, bookTitle, bookCover, scrollTop);
+    },
+    [bookId, bookTitle, bookCover, saveProgress]
+  );
+
+  const handleScrollLocated = useCallback(
+    (cfi: string) => {
+      locationRef.current = cfi;
+      const bms = getBookmarksForBook(bookId);
+      setIsBookmarked(bms.some((b) => b.cfi === cfi));
+    },
+    [bookId, getBookmarksForBook]
+  );
+
+  // ── Common actions ───────────────────────────────────────────
   const handleToggleBookmark = useCallback(() => {
     const cfi = typeof locationRef.current === "string" ? locationRef.current : "";
     if (!cfi) return;
@@ -238,15 +202,11 @@ export default function Reader({ bookId }: ReaderProps) {
   }, []);
 
   const handleToggleMode = useCallback(() => {
-    // Reset restore flag so the new mode can restore its own position
-    scrollRestoredRef.current = false;
     updatePref("readingMode", prefs.readingMode === "scroll" ? "paginated" : "scroll");
   }, [prefs.readingMode, updatePref]);
 
   const epubUrl = getEpubProxyUrl(bookId);
   const theme = THEME_STYLES[prefs.theme];
-  const isScroll = prefs.readingMode === "scroll";
-  const outerBg = isScroll ? theme.scrollBg : theme.bg;
 
   if (!epubUrl && book) {
     return (
@@ -259,20 +219,19 @@ export default function Reader({ bookId }: ReaderProps) {
     );
   }
 
+  // Paginated mode: ReactReader styles
   const readerStyle: typeof ReactReaderStyle = {
     ...ReactReaderStyle,
     readerArea: {
       ...ReactReaderStyle.readerArea,
-      background: outerBg,
+      background: theme.bg,
       transition: "background 0.3s ease",
     },
     container: {
       ...ReactReaderStyle.container,
-      background: outerBg,
+      background: theme.bg,
     },
-    titleArea: {
-      display: "none",
-    },
+    titleArea: { display: "none" },
     tocArea: {
       ...ReactReaderStyle.tocArea,
       background: prefs.theme === "dark" ? "#252320" : "#F5F0E8",
@@ -287,24 +246,21 @@ export default function Reader({ bookId }: ReaderProps) {
     },
     arrow: {
       ...ReactReaderStyle.arrow,
-      color: isScroll ? "transparent" : theme.text,
-      pointerEvents: isScroll ? "none" : "auto",
+      color: theme.text,
     } as React.CSSProperties,
     arrowHover: {
       ...ReactReaderStyle.arrowHover,
-      color: isScroll ? "transparent" : (prefs.theme === "dark" ? "#C8A97E" : "#7B4F2E"),
+      color: prefs.theme === "dark" ? "#C8A97E" : "#7B4F2E",
     } as React.CSSProperties,
   };
 
   return (
     <div
       className={`flex flex-col reader-container reader-theme-${prefs.theme}`}
-      style={{ height: "100dvh" }}
+      style={{ height: "100dvh", background: theme.bg }}
     >
       {/* Toolbar */}
-      <div
-        className="flex items-center gap-2 px-3 py-2 border-b shrink-0 reader-toolbar"
-      >
+      <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0 reader-toolbar">
         <Button
           variant="ghost" size="icon"
           className="h-8 w-8 shrink-0 reader-icon-btn"
@@ -315,7 +271,7 @@ export default function Reader({ bookId }: ReaderProps) {
         </Button>
 
         {/* Prev arrow (paginated only) */}
-        {!isScroll && (
+        {!isScrollMode && (
           <Button
             variant="ghost" size="icon"
             className="h-8 w-8 shrink-0 reader-icon-btn"
@@ -326,9 +282,7 @@ export default function Reader({ bookId }: ReaderProps) {
           </Button>
         )}
 
-        <p
-          className="flex-1 text-sm font-medium truncate font-lora reader-text"
-        >
+        <p className="flex-1 text-sm font-medium truncate font-lora reader-text">
           {bookTitle || "Lädt…"}
         </p>
 
@@ -337,7 +291,7 @@ export default function Reader({ bookId }: ReaderProps) {
         </span>
 
         {/* Next arrow (paginated only) */}
-        {!isScroll && (
+        {!isScrollMode && (
           <Button
             variant="ghost" size="icon"
             className="h-8 w-8 shrink-0 reader-icon-btn"
@@ -353,10 +307,10 @@ export default function Reader({ bookId }: ReaderProps) {
           variant="ghost" size="icon"
           className="h-8 w-8 shrink-0 reader-icon-btn"
           onClick={handleToggleMode}
-          title={isScroll ? "Zu Blätter-Modus wechseln" : "Zu Scroll-Modus wechseln"}
-          aria-label={isScroll ? "Zu Blätter-Modus wechseln" : "Zu Scroll-Modus wechseln"}
+          title={isScrollMode ? "Zu Blätter-Modus wechseln" : "Zu Scroll-Modus wechseln"}
+          aria-label={isScrollMode ? "Zu Blätter-Modus wechseln" : "Zu Scroll-Modus wechseln"}
         >
-          {isScroll ? <BookOpen className="w-4 h-4" /> : <AlignJustify className="w-4 h-4" />}
+          {isScrollMode ? <BookOpen className="w-4 h-4" /> : <AlignJustify className="w-4 h-4" />}
         </Button>
 
         {/* Bookmark */}
@@ -404,23 +358,38 @@ export default function Reader({ bookId }: ReaderProps) {
         />
       </div>
 
-      {/* EPUB Reader */}
-      <div className="flex-1 min-h-0">
-        {epubUrl && (
-          <ReactReader
-            key={prefs.readingMode}
+      {/* EPUB content area */}
+      {epubUrl && (
+        isScrollMode ? (
+          // ── Scroll mode: continuous vertical scroll via epub.js directly ──
+          <ScrollReader
+            key={`scroll-${bookId}`}
             url={epubUrl}
-            location={location}
-            locationChanged={handleLocationChange}
-            getRendition={handleRendition}
-            readerStyles={readerStyle}
-            epubOptions={{
-              flow: isScroll ? "scrolled-doc" : "paginated",
-              // Do NOT use manager:"continuous" — it causes instability in react-reader
-            }}
+            initialCfi={initialCfi}
+            initialScrollTop={initialScrollTop}
+            fontSize={prefs.fontSize}
+            lineHeight={prefs.lineHeight}
+            fontFamily={prefs.fontFamily}
+            themeColors={{ bg: theme.bg, text: theme.text }}
+            onProgress={handleScrollProgress}
+            onRendition={handleScrollRendition}
+            onLocated={handleScrollLocated}
           />
-        )}
-      </div>
+        ) : (
+          // ── Paginated mode: ReactReader with left/right navigation ──
+          <div className="flex-1 min-h-0">
+            <ReactReader
+              key={`paginated-${bookId}`}
+              url={epubUrl}
+              location={location}
+              locationChanged={handlePaginatedLocationChange}
+              getRendition={handlePaginatedRendition}
+              readerStyles={readerStyle}
+              epubOptions={{ flow: "paginated" }}
+            />
+          </div>
+        )
+      )}
     </div>
   );
 }

@@ -154,3 +154,38 @@
 
 ## Code-Qualität
 - [x] Alle statischen Inline-Styles aus React-Komponenten in CSS-Klassen ausgelagert (font-lora, aspect-book, reader-container, reader-toolbar, reader-icon-btn, reader-text, reader-progress-track etc. in index.css). Nur legitim dynamische Werte (progress width %, opacity, palette-Farben) bleiben als Inline-Styles.
+
+## Bug Fixes (Session 3)
+- [x] Fix: "Vorschau fehlt" statt echtem Vorschautext beim Hover auf ähnliche Bücher in BookDetail
+- [x] Feature: Filter- und Sortier-State im Katalog persistent halten (URL-Parameter), auch nach Navigation zu Buchdetailseite und zurück
+
+## Bug Fixes (Session 4)
+- [x] Bug: Reader Scroll-Modus zeigt nur ein Kapitel, dann Ende — vollständiges Buch als kontinuierlicher vertikaler Scroll (einspaltig, zentriert, optimale Lesebreite, kein extra Hintergrund)
+
+## Bug Fixes (Session 5)
+- [x] Bug: Buch lädt nicht im Reader (beide Modi) — war ein vorübergehendes Netzwerkproblem, kein Code-Bug
+
+## Features (Session 5)
+- [x] Feature: Inhaltsverzeichnis im Scroll-Modus — standardmäßig geöffnet, schließt sich nicht automatisch beim Kapitelsprung, nur manuell schließbar
+
+## Bug Fixes (Session 6)
+- [x] Bug: "Zurück zur Übersicht" in BookDetail führt zurück zum Reader statt zur Katalogübersicht, wenn man vom Reader kommt
+
+## Features (Session 7)
+- [x] Feature: Volltextsuche im EPUB-Inhalt — Toggle im Suchfeld (Titel / Volltext), Ergebnisliste mit Kontext-Snippets, Link zum Öffnen der Fundstelle im Reader
+
+## Features (Session 8)
+- [x] Feature: Batch-Pre-Cache aller deutschen EPUBs via rsync (gemäß Gutenberg-Mirroring-Richtlinien, freundlich/gedrosselt)
+- [x] Feature: Token-geschützter Admin-Endpunkt /api/admin/precache-epubs zum Anstoßen des rsync-Scripts per URL + Admin-UI mit Echtzeit-Logs
+
+## Features (Session 9)
+- [x] Feature: Eigene Leseliste-Seite (/leseliste) mit allen angelesenen Büchern, Fortschrittsanzeige und Navigation
+
+## Bug Fixes (Session 10)
+- [x] Bug: Google Search Console meldet "HTTPS nicht ausgewertet" — HTTP→HTTPS Redirect mit 301 in Express implementiert (X-Forwarded-Proto, nur in production)
+
+## Features (Session 10)
+- [x] Feature: 301-Redirect von www.gutenberg-navigator.de auf gutenberg-navigator.de (non-www)
+
+## Bug Fixes (Session 11)
+- [x] Bug: Doppelter React-Key "Deutschland – Belletristik" bei Themen-Chips — parseSubjects/parseBookshelves deduplizieren via Set

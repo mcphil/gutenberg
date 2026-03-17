@@ -344,12 +344,14 @@ export const translateSubject = translateTag;
 
 export function parseSubjects(subjectsStr: string | null): string[] {
   if (!subjectsStr) return [];
-  return subjectsStr.split(";").map((s) => translateTag(s.trim())).filter(Boolean);
+  const items = subjectsStr.split(";").map((s) => translateTag(s.trim())).filter(Boolean);
+  return Array.from(new Set(items));
 }
 
 export function parseBookshelves(bookshelvesStr: string | null): string[] {
   if (!bookshelvesStr) return [];
-  return bookshelvesStr.split(";").map((s) => translateTag(s.trim())).filter(Boolean);
+  const items = bookshelvesStr.split(";").map((s) => translateTag(s.trim())).filter(Boolean);
+  return Array.from(new Set(items));
 }
 
 // ─── URL helpers ──────────────────────────────────────────────────────────────

@@ -3,7 +3,9 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { getBookSummary, listBooks, getBookById, getRandomBooks, getTotalBookCount, getRelatedBooks, getBooksByAuthor } from "./db";
+import { getBookSummary, listBooks, getBookById, getRandomBooks, getTotalBookCount, getRelatedBooks, getBooksByAuthor, getCachedEpubBooks } from "./db";
+import { searchEpub } from "./epub-search";
+import { getAuthorDisplay } from "../shared/gutenberg";
 
 export const appRouter = router({
   system: systemRouter,
@@ -72,6 +74,32 @@ export const appRouter = router({
       .input(z.object({ authorName: z.string().min(1) }))
       .query(async ({ input }) => {
         return getBooksByAuthor(input.authorName);
+      }),
+
+    // Full-text search across locally cached EPUB files
+    fullTextSearch: publicProcedure
+      .input(z.object({
+        query: z.string().min(2).max(100),
+      }))
+      .query(async ({ input }) => {
+        const q = input.query.trim();
+        if (q.length < 2) return { results: [], query: q };
+
+        // Get all books that have a cached EPUB on disk
+        const books = await getCachedEpubBooks();
+
+        const allMatches = [];
+        for (const book of books) {
+          const matches = searchEpub(
+            book.gutenbergId,
+            book.title,
+            getAuthorDisplay(book),
+            q
+          );
+          allMatches.push(...matches);
+        }
+
+        return { results: allMatches, query: q };
       }),
   }),
 

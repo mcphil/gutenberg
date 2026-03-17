@@ -1,7 +1,11 @@
-import { BookOpen, Grid3X3, List, Shuffle, Sun, Moon, Search, X } from "lucide-react";
+import { BookOpen, Grid3X3, List, Shuffle, Sun, Moon, Search, X, FileSearch, BookMarked } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Link } from "wouter";
 import { useCallback, useState } from "react";
+import { useReadingProgress } from "@/hooks/useLocalStorage";
+
+export type SearchMode = "title" | "fulltext";
 
 interface AppHeaderProps {
   view: "grid" | "list" | "browse";
@@ -10,6 +14,8 @@ interface AppHeaderProps {
   onToggleDark: () => void;
   searchQuery: string;
   onSearchChange: (q: string) => void;
+  searchMode: SearchMode;
+  onSearchModeChange: (mode: SearchMode) => void;
 }
 
 export function AppHeader({
@@ -19,8 +25,12 @@ export function AppHeader({
   onToggleDark,
   searchQuery,
   onSearchChange,
+  searchMode,
+  onSearchModeChange,
 }: AppHeaderProps) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const { getAllProgress } = useReadingProgress();
+  const readingCount = getAllProgress().length;
 
   const handleSearchToggle = useCallback(() => {
     if (searchOpen && searchQuery) {
@@ -28,6 +38,8 @@ export function AppHeader({
     }
     setSearchOpen((v) => !v);
   }, [searchOpen, searchQuery, onSearchChange]);
+
+  const isFullText = searchMode === "fulltext";
 
   return (
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
@@ -40,33 +52,47 @@ export function AppHeader({
             onClick={(e) => { e.preventDefault(); onViewChange("grid"); }}
           >
             <BookOpen className="w-5 h-5 text-primary" />
-            <span
-              className="font-semibold text-base hidden sm:block font-lora"
-            >
+            <span className="font-semibold text-base hidden sm:block font-lora">
               Gutenberg Navigator
             </span>
           </a>
 
           {/* Search bar — expands on mobile */}
           <div className={`flex-1 transition-all duration-200 ${searchOpen ? "block" : "hidden sm:block"}`}>
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <Input
-                type="search"
-                placeholder="Titel, Autor, Thema suchen…"
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                className="pl-9 h-9 bg-muted/60 border-transparent focus:bg-background focus:border-border"
-                autoFocus={searchOpen}
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => onSearchChange("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+            <div className="relative max-w-lg flex items-center gap-1">
+              {/* Mode toggle button */}
+              <button
+                onClick={() => onSearchModeChange(isFullText ? "title" : "fulltext")}
+                title={isFullText ? "Volltext-Suche aktiv — klicken für Titelsuche" : "Titelsuche aktiv — klicken für Volltext-Suche"}
+                className={`shrink-0 h-9 w-9 flex items-center justify-center rounded-md border transition-colors ${
+                  isFullText
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/60 text-muted-foreground border-transparent hover:border-border hover:text-foreground"
+                }`}
+                aria-label={isFullText ? "Zur Titelsuche wechseln" : "Zur Volltextsuche wechseln"}
+              >
+                {isFullText ? <FileSearch className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+              </button>
+
+              {/* Input */}
+              <div className="relative flex-1">
+                <Input
+                  type="search"
+                  placeholder={isFullText ? "Im Buchtext suchen…" : "Titel, Autor, Thema suchen…"}
+                  value={searchQuery}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  className="h-9 bg-muted/60 border-transparent focus:bg-background focus:border-border pr-8"
+                  autoFocus={searchOpen}
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => onSearchChange("")}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -121,6 +147,24 @@ export function AppHeader({
             >
               {view === "grid" ? <Grid3X3 className="w-4 h-4" /> : view === "list" ? <List className="w-4 h-4" /> : <Shuffle className="w-4 h-4" />}
             </Button>
+
+            {/* Reading list link */}
+            {readingCount > 0 && (
+              <Link href="/leseliste">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 relative"
+                  aria-label={`Leseliste (${readingCount} Bücher)`}
+                  title={`Leseliste (${readingCount} Bücher)`}
+                >
+                  <BookMarked className="w-4 h-4" />
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-amber-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
+                    {readingCount > 99 ? "99+" : readingCount}
+                  </span>
+                </Button>
+              </Link>
+            )}
 
             {/* Dark mode */}
             <Button

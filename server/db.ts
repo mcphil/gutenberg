@@ -232,27 +232,45 @@ export async function getRelatedBooks(gutenbergId: number, count = 5): Promise<B
 
   // Score = number of matching subject terms
   const scoreExpr = terms
-    .map((t) => `(CASE WHEN subjects LIKE ${escapeTerm(t)} THEN 1 ELSE 0 END)`)
+    .map((t) => `(CASE WHEN b.subjects LIKE ${escapeTerm(t)} THEN 1 ELSE 0 END)`)
     .join(" + ");
 
   const orConditions = terms
-    .map((t) => `subjects LIKE ${escapeTerm(t)}`)
+    .map((t) => `b.subjects LIKE ${escapeTerm(t)}`)
     .join(" OR ");
 
   const [rows] = await db.execute(
-    sql`SELECT *, (${sql.raw(scoreExpr)}) AS _score
-        FROM books
-        WHERE type = 'Text'
-          AND gutenbergId != ${gutenbergId}
+    sql`SELECT b.*, bs.shortSummary, (${sql.raw(scoreExpr)}) AS _score
+        FROM books b
+        LEFT JOIN book_summaries bs ON bs.gutenbergId = b.gutenbergId
+        WHERE b.type = 'Text'
+          AND b.gutenbergId != ${gutenbergId}
           AND (${sql.raw(orConditions)})
-        ORDER BY _score DESC, gutenbergId DESC
+        ORDER BY _score DESC, b.gutenbergId DESC
         LIMIT ${count}`
   );
 
   return (rows as unknown as Book[]) ?? [];
 }
 
-// ─── Author queries ───────────────────────────────────────────────────────────
+// ─── EPUB-cached books ───────────────────────────────────────────────────────
+/**
+ * Return all books that have a cached EPUB (epubCached = true in book_summaries).
+ * Used by the full-text search to know which books can be searched.
+ */
+export async function getCachedEpubBooks(): Promise<Book[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const [rows] = await db.execute(
+    sql`SELECT b.* FROM books b
+        INNER JOIN book_summaries bs ON bs.gutenbergId = b.gutenbergId
+        WHERE bs.epubCached = 1 AND b.type = 'Text'
+        ORDER BY b.title ASC`
+  );
+  return (rows as unknown as Book[]) ?? [];
+}
+
+// ─── Author queries ─────────────────────────────────────────────────────────────
 /**
  * Find all books by a given author name (partial match on the raw authors field).
  * The name can be in "Firstname Lastname" or "Lastname, Firstname" form — we

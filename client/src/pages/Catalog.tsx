@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 import { useLocation, useSearch } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { BookCard, BookCardSkeleton } from "@/components/BookCard";
@@ -13,32 +13,65 @@ interface CatalogProps {
   searchQuery: string;
 }
 
+type SortBy = "popular" | "ascending" | "descending" | "random";
+
+/** Read all catalog params from the current URL search string */
+function useCatalogParams() {
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+
+  const page = Math.max(1, parseInt(params.get("page") ?? "1", 10) || 1);
+  const sortBy = (params.get("sort") ?? "random") as SortBy;
+  const selectedSubject = params.get("topic") ?? "";
+  const selectedTag = params.get("subject") ?? "";
+
+  return { page, sortBy, selectedSubject, selectedTag, params };
+}
+
 export default function Catalog({ view, searchQuery }: CatalogProps) {
   const [, navigate] = useLocation();
-  const search = useSearch();
-  const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState<"popular" | "ascending" | "descending" | "random">("random");
-  // Initialise from ?topic= URL param so FilterPanel topic buttons work
-  const [selectedSubject, setSelectedSubject] = useState(() => {
-    const params = new URLSearchParams(search);
-    return params.get("topic") ?? "";
-  });
+  const { page, sortBy, selectedSubject, selectedTag } = useCatalogParams();
 
-  // Exact subject tag filter from ?subject= URL param (set by BookDetail tag clicks)
-  const [selectedTag, setSelectedTag] = useState(() => {
-    const params = new URLSearchParams(search);
-    return params.get("subject") ?? "";
-  });
+  /** Push a new URL that merges the given param changes, resetting page to 1 unless explicitly set */
+  const setParams = useCallback(
+    (updates: Record<string, string | null>, resetPage = true) => {
+      // Start from the current URL params so we don't lose unrelated params
+      const current = new URLSearchParams(window.location.search);
+      if (resetPage) current.set("page", "1");
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null || value === "") {
+          current.delete(key);
+        } else {
+          current.set(key, value);
+        }
+      }
+      // Remove page=1 from URL to keep it clean
+      if (current.get("page") === "1") current.delete("page");
+      const qs = current.toString();
+      navigate(qs ? `/?${qs}` : "/", { replace: false });
+    },
+    [navigate]
+  );
 
-  // Sync filters when URL params change (e.g. browser back/forward)
-  useEffect(() => {
-    const params = new URLSearchParams(search);
-    setSelectedSubject(params.get("topic") ?? "");
-    setSelectedTag(params.get("subject") ?? "");
-  }, [search]);
+  const handleSortChange = useCallback(
+    (v: SortBy) => setParams({ sort: v === "random" ? null : v }),
+    [setParams]
+  );
 
-  // Reset page when filters change
-  useEffect(() => { setPage(1); }, [searchQuery, sortBy, selectedSubject, selectedTag]);
+  const handleSubjectChange = useCallback(
+    (s: string) => setParams({ topic: s || null }),
+    [setParams]
+  );
+
+  const handleTagRemove = useCallback(
+    () => setParams({ subject: null }),
+    [setParams]
+  );
+
+  const handlePageChange = useCallback(
+    (newPage: number) => setParams({ page: String(newPage) }, false),
+    [setParams]
+  );
 
   const { data, isLoading, isFetching } = trpc.books.list.useQuery(
     {
@@ -72,7 +105,7 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
           <Badge variant="secondary" className="text-xs gap-1">
             {translateSubject(selectedTag)}
             <button
-              onClick={() => { setSelectedTag(""); navigate("/"); }}
+              onClick={handleTagRemove}
               className="ml-0.5 hover:text-destructive transition-colors"
               aria-label="Filter entfernen"
             >
@@ -84,9 +117,9 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
 
       <FilterPanel
         sortBy={sortBy}
-        onSortChange={setSortBy}
+        onSortChange={handleSortChange}
         selectedSubject={selectedSubject}
-        onSubjectChange={setSelectedSubject}
+        onSubjectChange={handleSubjectChange}
         totalCount={totalCount}
         isLoading={isLoading}
       />
@@ -128,7 +161,7 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => handlePageChange(Math.max(1, page - 1))}
             disabled={page === 1 || isFetching}
           >
             <ChevronLeft className="w-4 h-4 mr-1" />
@@ -140,7 +173,7 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
             disabled={page === totalPages || isFetching}
           >
             Weiter
@@ -155,7 +188,6 @@ export default function Catalog({ view, searchQuery }: CatalogProps) {
 // ─── List Row ────────────────────────────────────────────────
 
 function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
-  const [hovered, setHovered] = useState(false);
   const author = getAuthorDisplay(book);
   // shortSummary is included in the book list response via LEFT JOIN (no extra query needed)
   const shortSummary = book.shortSummary ?? null;
@@ -167,8 +199,6 @@ function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       {/* Mini cover */}
       <div className="shrink-0 w-14 rounded overflow-hidden aspect-book">
@@ -196,18 +226,16 @@ function ListRow({ book, onClick }: { book: LocalBook; onClick: () => void }) {
         {/* NOTE: book.issued is the Gutenberg upload date, NOT the original publication year — do not display it */}
 
         {/* Summary — fades in on hover */}
-        <div
-          className={`overflow-hidden transition-all duration-200 ${
-            hovered && shortSummary ? "max-h-20 opacity-100" : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="flex items-start gap-1 pt-1">
-            <Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" />
-            <p className="text-xs text-foreground/75 leading-relaxed line-clamp-3">
-              {shortSummary}
-            </p>
+        {shortSummary && (
+          <div className="overflow-hidden max-h-0 opacity-0 group-hover:max-h-20 group-hover:opacity-100 transition-all duration-200">
+            <div className="flex items-start gap-1 pt-1">
+              <Sparkles className="w-3 h-3 text-primary mt-0.5 shrink-0" />
+              <p className="text-xs text-foreground/75 leading-relaxed line-clamp-3">
+                {shortSummary}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
